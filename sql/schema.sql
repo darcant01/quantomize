@@ -1,35 +1,24 @@
 -- ============================================================
---  Quantomize — Supabase SQL Schema (Safe Version)
+--  Quantomize — Supabase SQL Schema
 --  Run this in: Supabase → SQL Editor → New Query
 -- ============================================================
 
 -- ── Extensions ───────────────────────────────────────────────
 create extension if not exists "uuid-ossp";
 
--- ── Drop existing tables safely ───────────────────────────────
-drop table if exists sale_items cascade;
-drop table if exists sales cascade;
-drop table if exists inventory_log cascade;
-drop table if exists products cascade;
-drop table if exists categories cascade;
-drop table if exists settings cascade;
-drop table if exists profiles cascade;
+-- ── Drop tables (cascades drop policies too) ─────────────────
+drop table if exists sale_items     cascade;
+drop table if exists sales          cascade;
+drop table if exists inventory_log  cascade;
+drop table if exists products       cascade;
+drop table if exists categories     cascade;
+drop table if exists settings       cascade;
+drop table if exists profiles       cascade;
 
--- ── Drop existing policies safely ─────────────────────────────
-drop policy if exists "Auth read profiles"      on profiles;
-drop policy if exists "Auth read categories"    on categories;
-drop policy if exists "Auth read products"      on products;
-drop policy if exists "Auth read sales"         on sales;
-drop policy if exists "Auth read sale_items"    on sale_items;
-drop policy if exists "Auth read inv_log"       on inventory_log;
-drop policy if exists "Auth read settings"      on settings;
-drop policy if exists "Service full profiles"   on profiles;
-drop policy if exists "Service full categories" on categories;
-drop policy if exists "Service full products"   on products;
-drop policy if exists "Service full sales"      on sales;
-drop policy if exists "Service full sale_items" on sale_items;
-drop policy if exists "Service full inv_log"    on inventory_log;
-drop policy if exists "Service full settings"   on settings;
+-- ── Drop functions ────────────────────────────────────────────
+drop function if exists next_receipt_no()     cascade;
+drop function if exists update_updated_at()   cascade;
+drop function if exists handle_new_user()     cascade;
 
 -- ── Profiles ─────────────────────────────────────────────────
 create table profiles (
@@ -135,7 +124,6 @@ returns trigger language plpgsql as $$
 begin new.updated_at = now(); return new; end;
 $$;
 
-drop trigger if exists products_updated_at on products;
 create trigger products_updated_at
   before update on products
   for each row execute function update_updated_at();
@@ -170,23 +158,21 @@ alter table sale_items    enable row level security;
 alter table inventory_log enable row level security;
 alter table settings      enable row level security;
 
--- Authenticated users can read everything
-create policy "Auth read profiles"   on profiles      for select using (auth.role() = 'authenticated');
-create policy "Auth read categories" on categories    for select using (auth.role() = 'authenticated');
-create policy "Auth read products"   on products      for select using (auth.role() = 'authenticated');
-create policy "Auth read sales"      on sales         for select using (auth.role() = 'authenticated');
-create policy "Auth read sale_items" on sale_items    for select using (auth.role() = 'authenticated');
-create policy "Auth read inv_log"    on inventory_log for select using (auth.role() = 'authenticated');
-create policy "Auth read settings"   on settings      for select using (auth.role() = 'authenticated');
+create policy "read profiles"      on profiles      for select using (auth.role() = 'authenticated');
+create policy "read categories"    on categories    for select using (auth.role() = 'authenticated');
+create policy "read products"      on products      for select using (auth.role() = 'authenticated');
+create policy "read sales"         on sales         for select using (auth.role() = 'authenticated');
+create policy "read sale_items"    on sale_items    for select using (auth.role() = 'authenticated');
+create policy "read inv_log"       on inventory_log for select using (auth.role() = 'authenticated');
+create policy "read settings"      on settings      for select using (auth.role() = 'authenticated');
 
--- Service role has full access (used by Vercel API)
-create policy "Service full profiles"   on profiles      for all using (true);
-create policy "Service full categories" on categories    for all using (true);
-create policy "Service full products"   on products      for all using (true);
-create policy "Service full sales"      on sales         for all using (true);
-create policy "Service full sale_items" on sale_items    for all using (true);
-create policy "Service full inv_log"    on inventory_log for all using (true);
-create policy "Service full settings"   on settings      for all using (true);
+create policy "service profiles"   on profiles      for all using (true);
+create policy "service categories" on categories    for all using (true);
+create policy "service products"   on products      for all using (true);
+create policy "service sales"      on sales         for all using (true);
+create policy "service sale_items" on sale_items    for all using (true);
+create policy "service inv_log"    on inventory_log for all using (true);
+create policy "service settings"   on settings      for all using (true);
 
 -- ── Default settings ─────────────────────────────────────────
 insert into settings (key, value) values
@@ -208,9 +194,14 @@ insert into categories (name) values
   ('Home & Living')
 on conflict (name) do nothing;
 
--- ── Make existing auth user an admin ─────────────────────────
--- Run this separately after creating your user in Auth → Users:
--- UPDATE profiles SET role = 'admin', username = 'admin', full_name = 'Administrator'
--- WHERE id = (SELECT id FROM auth.users WHERE email = 'YOUR_EMAIL_HERE');
+-- ── Insert existing auth users into profiles ──────────────────
+insert into profiles (id, username, full_name, role)
+select
+  id,
+  split_part(email, '@', 1) as username,
+  split_part(email, '@', 1) as full_name,
+  'staff' as role
+from auth.users
+on conflict (id) do nothing;
 
 select 'Quantomize schema created successfully!' as status;
