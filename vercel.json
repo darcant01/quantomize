@@ -1,9 +1,18 @@
 {
   "version": 2,
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/app", "destination": "/public/app.html" },
-    { "source": "/login", "destination": "/public/login.html" },
-    { "source": "/", "destination": "/public/login.html" }
+  "functions": {
+    "api/*.js": {
+      "runtime": "nodejs20.x"
+    }
+  },
+  "routes": [
+    { "src": "/api/auth",     "dest": "/api/auth.js" },
+    { "src": "/api/products", "dest": "/api/products.js" },
+    { "src": "/api/sales",    "dest": "/api/sales.js" },
+    { "src": "/api/users",    "dest": "/api/users.js" },
+    { "src": "/api/settings", "dest": "/api/settings.js" },
+    { "src": "/app",          "dest": "/public/app.html" },
+    { "src": "/login",        "dest": "/public/login.html" },
+    { "src": "/",             "dest": "/public/login.html" }
   ]
 }
