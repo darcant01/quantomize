@@ -16,16 +16,12 @@ export default async function handler(req, res) {
   const { action, email, password, token } = req.body;
 
   try {
-    // ── Login ──────────────────────────────────────────────────
     if (action === 'login') {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) return res.status(401).json({ success: false, error: 'Invalid email or password' });
 
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
+        .from('profiles').select('*').eq('id', data.user.id).single();
 
       if (!profile?.active) return res.status(403).json({ success: false, error: 'Account disabled' });
 
@@ -40,21 +36,13 @@ export default async function handler(req, res) {
       });
     }
 
-    // ── Me (verify token) ──────────────────────────────────────
     if (action === 'me') {
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) return res.status(401).json({ success: false, error: 'Unauthorized' });
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       return res.json({ success: true, user: { ...profile, email: user.email } });
     }
 
-    // ── Logout ─────────────────────────────────────────────────
     if (action === 'logout') {
       await supabase.auth.signOut();
       return res.json({ success: true });
