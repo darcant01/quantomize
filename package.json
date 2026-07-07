@@ -1,7 +1,7 @@
 {
-  "name": "sales-inventory-system",
+  "name": "quantomize",
   "version": "1.0.0",
-  "description": "Sales & Inventory Management System — Vercel + Supabase",
+  "description": "Quantomize — Sales & Inventory Management System",
   "type": "module",
   "scripts": {
     "dev": "vercel dev",

@@ -1,5 +1,5 @@
 -- ============================================================
---  Sales & Inventory System — Supabase SQL Schema
+--  Quantomize — Supabase SQL Schema
 --  Run this entire file in Supabase → SQL Editor → New Query
 -- ============================================================
 
@@ -152,7 +152,7 @@ create policy "Service full settings"      on settings      for all using (true)
 
 -- ── Seed default settings ────────────────────────────────────
 insert into settings (key, value) values
-  ('store_name',       'My Store'),
+  ('store_name',       'Quantomize'),
   ('store_address',    '123 Main St'),
   ('store_phone',      ''),
   ('currency_symbol',  '₱'),

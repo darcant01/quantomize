@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sales & Inventory System</title>
+<title>Quantomize</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f1f5f9;color:#1e293b;font-size:14px}
@@ -140,7 +140,7 @@ input:focus,select:focus,textarea:focus{border-color:#2563eb;box-shadow:0 0 0 3p
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-logo"><span>🏪</span><span id="sidebarStoreName">Store</span></div>
-      <div class="store-name-small">Management System</div>
+      <div class="store-name-small">Sales & Inventory Management</div>
     </div>
     <div class="sidebar-user">
       <div class="user-name" id="userName">—</div>
@@ -221,7 +221,7 @@ async function init() {
     SETTINGS = r.settings;
     CURRENCY = SETTINGS.currency_symbol || '₱';
     document.getElementById('sidebarStoreName').textContent = SETTINGS.store_name || 'Store';
-    document.title = (SETTINGS.store_name || 'Sales & Inventory') + ' — Dashboard';
+    document.title = (SETTINGS.store_name || 'Quantomize') + ' — Dashboard';
   }
   navigate('dashboard');
 }
