@@ -1,0 +1,16 @@
+{
+  "name": "sales-inventory-system",
+  "version": "1.0.0",
+  "description": "Sales & Inventory Management System — Vercel + Supabase",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'Static frontend, no build needed'"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "devDependencies": {
+    "vercel": "^33.0.0"
+  }
+}
