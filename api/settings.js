@@ -1,14 +1,10 @@
-// api/settings.js — Store settings
-import { supabase, requireAuth, requireAdmin, setCors } from './_middleware.js';
+const { supabase, requireAuth, requireAdmin, setCors } = require('./_middleware');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   setCors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const profile = await requireAuth(req, res);
-  if (!profile) return;
-
-  const { action } = req.body || req.query;
+  const { action } = req.body || {};
 
   try {
     if (action === 'getSettings') {
@@ -18,6 +14,9 @@ export default async function handler(req, res) {
       for (const row of data) settings[row.key] = row.value;
       return res.json({ success: true, settings });
     }
+
+    const profile = await requireAuth(req, res);
+    if (!profile) return;
 
     if (action === 'saveSettings') {
       if (!requireAdmin(profile, res)) return;
@@ -32,4 +31,4 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
-}
+};

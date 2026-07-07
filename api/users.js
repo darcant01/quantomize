@@ -1,17 +1,15 @@
-// api/users.js — User management (admin only)
-import { supabase, requireAuth, requireAdmin, setCors } from './_middleware.js';
+const { supabase, requireAuth, requireAdmin, setCors } = require('./_middleware');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   setCors(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const profile = await requireAuth(req, res);
   if (!profile) return;
 
-  const { action } = req.body || req.query;
+  const { action } = req.body || {};
 
   try {
-    // ── Get Users (admin) ──────────────────────────────────────
     if (action === 'getUsers') {
       if (!requireAdmin(profile, res)) return;
       const { data, error } = await supabase.from('profiles').select('*').order('created_at');
@@ -19,7 +17,6 @@ export default async function handler(req, res) {
       return res.json({ success: true, users: data });
     }
 
-    // ── Add User (admin) ──────────────────────────────────────
     if (action === 'addUser') {
       if (!requireAdmin(profile, res)) return;
       const { email, password, username, full_name, role } = req.body;
@@ -35,26 +32,18 @@ export default async function handler(req, res) {
         id: authData.user.id, username, full_name, role: role || 'staff'
       });
       if (profErr) throw profErr;
-
       return res.json({ success: true, id: authData.user.id });
     }
 
-    // ── Update User (admin) ───────────────────────────────────
     if (action === 'updateUser') {
       if (!requireAdmin(profile, res)) return;
       const { id, full_name, role, password } = req.body;
-
-      const { error } = await supabase.from('profiles')
-        .update({ full_name, role }).eq('id', id);
+      const { error } = await supabase.from('profiles').update({ full_name, role }).eq('id', id);
       if (error) throw error;
-
-      if (password) {
-        await supabase.auth.admin.updateUserById(id, { password });
-      }
+      if (password) await supabase.auth.admin.updateUserById(id, { password });
       return res.json({ success: true });
     }
 
-    // ── Delete User / Deactivate (admin) ──────────────────────
     if (action === 'deleteUser') {
       if (!requireAdmin(profile, res)) return;
       const { id } = req.body;
@@ -67,4 +56,4 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
-}
+};

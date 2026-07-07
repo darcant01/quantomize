@@ -1,12 +1,11 @@
-// api/_middleware.js — Shared auth + supabase client helper
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
-export const supabase = createClient(
+const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 );
 
-export async function requireAuth(req, res) {
+async function requireAuth(req, res) {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) { res.status(401).json({ success: false, error: 'Unauthorized' }); return null; }
 
@@ -21,7 +20,7 @@ export async function requireAuth(req, res) {
   return profile;
 }
 
-export function requireAdmin(profile, res) {
+function requireAdmin(profile, res) {
   if (profile.role !== 'admin') {
     res.status(403).json({ success: false, error: 'Admin only' });
     return false;
@@ -29,8 +28,10 @@ export function requireAdmin(profile, res) {
   return true;
 }
 
-export function setCors(res) {
+function setCors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
+
+module.exports = { supabase, requireAuth, requireAdmin, setCors };

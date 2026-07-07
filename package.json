@@ -2,15 +2,10 @@
   "name": "quantomize",
   "version": "1.0.0",
   "description": "Quantomize — Sales & Inventory Management System",
-  "type": "module",
   "scripts": {
-    "dev": "vercel dev",
-    "build": "echo 'Static frontend, no build needed'"
+    "dev": "vercel dev"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0"
-  },
-  "devDependencies": {
-    "vercel": "^33.0.0"
   }
 }
