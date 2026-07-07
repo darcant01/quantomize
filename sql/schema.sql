@@ -3,10 +3,8 @@
 --  Run this in: Supabase → SQL Editor → New Query
 -- ============================================================
 
--- ── Extensions ───────────────────────────────────────────────
 create extension if not exists "uuid-ossp";
 
--- ── Drop tables (cascades drop policies too) ─────────────────
 drop table if exists sale_items     cascade;
 drop table if exists sales          cascade;
 drop table if exists inventory_log  cascade;
@@ -14,13 +12,10 @@ drop table if exists products       cascade;
 drop table if exists categories     cascade;
 drop table if exists settings       cascade;
 drop table if exists profiles       cascade;
+drop function if exists next_receipt_no()   cascade;
+drop function if exists update_updated_at() cascade;
+drop function if exists handle_new_user()   cascade;
 
--- ── Drop functions ────────────────────────────────────────────
-drop function if exists next_receipt_no()     cascade;
-drop function if exists update_updated_at()   cascade;
-drop function if exists handle_new_user()     cascade;
-
--- ── Profiles ─────────────────────────────────────────────────
 create table profiles (
   id         uuid primary key references auth.users(id) on delete cascade,
   username   text unique not null,
@@ -30,14 +25,12 @@ create table profiles (
   created_at timestamptz default now()
 );
 
--- ── Categories ───────────────────────────────────────────────
 create table categories (
   id         uuid primary key default uuid_generate_v4(),
   name       text not null unique,
   created_at timestamptz default now()
 );
 
--- ── Products ─────────────────────────────────────────────────
 create table products (
   id              uuid primary key default uuid_generate_v4(),
   sku             text unique,
@@ -54,7 +47,6 @@ create table products (
   updated_at      timestamptz default now()
 );
 
--- ── Sales ────────────────────────────────────────────────────
 create table sales (
   id             uuid primary key default uuid_generate_v4(),
   receipt_no     text unique not null,
@@ -71,7 +63,6 @@ create table sales (
   created_at     timestamptz default now()
 );
 
--- ── Sale Items ───────────────────────────────────────────────
 create table sale_items (
   id           uuid primary key default uuid_generate_v4(),
   sale_id      uuid not null references sales(id) on delete cascade,
@@ -83,7 +74,6 @@ create table sale_items (
   line_total   numeric(12,2) not null
 );
 
--- ── Inventory Log ────────────────────────────────────────────
 create table inventory_log (
   id           uuid primary key default uuid_generate_v4(),
   product_id   uuid references products(id) on delete set null,
@@ -96,13 +86,11 @@ create table inventory_log (
   created_at   timestamptz default now()
 );
 
--- ── Settings ─────────────────────────────────────────────────
 create table settings (
   key   text primary key,
   value text
 );
 
--- ── Receipt number function ───────────────────────────────────
 create or replace function next_receipt_no()
 returns text language plpgsql as $$
 declare
@@ -118,7 +106,6 @@ begin
 end;
 $$;
 
--- ── Updated_at trigger ───────────────────────────────────────
 create or replace function update_updated_at()
 returns trigger language plpgsql as $$
 begin new.updated_at = now(); return new; end;
@@ -128,16 +115,15 @@ create trigger products_updated_at
   before update on products
   for each row execute function update_updated_at();
 
--- ── Auto-create profile on signup ────────────────────────────
 create or replace function handle_new_user()
 returns trigger language plpgsql security definer as $$
 begin
-  insert into profiles (id, username, full_name, role)
+  insert into public.profiles (id, username, full_name, role)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1)),
     coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
-    coalesce(new.raw_user_meta_data->>'role', 'staff')
+    'staff'
   )
   on conflict (id) do nothing;
   return new;
@@ -149,7 +135,6 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
 
--- ── Row Level Security ───────────────────────────────────────
 alter table profiles      enable row level security;
 alter table categories    enable row level security;
 alter table products      enable row level security;
@@ -165,7 +150,6 @@ create policy "read sales"         on sales         for select using (auth.role(
 create policy "read sale_items"    on sale_items    for select using (auth.role() = 'authenticated');
 create policy "read inv_log"       on inventory_log for select using (auth.role() = 'authenticated');
 create policy "read settings"      on settings      for select using (auth.role() = 'authenticated');
-
 create policy "service profiles"   on profiles      for all using (true);
 create policy "service categories" on categories    for all using (true);
 create policy "service products"   on products      for all using (true);
@@ -174,7 +158,6 @@ create policy "service sale_items" on sale_items    for all using (true);
 create policy "service inv_log"    on inventory_log for all using (true);
 create policy "service settings"   on settings      for all using (true);
 
--- ── Default settings ─────────────────────────────────────────
 insert into settings (key, value) values
   ('store_name',      'Quantomize'),
   ('store_address',   ''),
@@ -185,7 +168,6 @@ insert into settings (key, value) values
   ('tax_rate',        '0')
 on conflict (key) do update set value = excluded.value;
 
--- ── Default categories ───────────────────────────────────────
 insert into categories (name) values
   ('Food & Beverage'),
   ('Electronics'),
@@ -193,15 +175,5 @@ insert into categories (name) values
   ('Health & Beauty'),
   ('Home & Living')
 on conflict (name) do nothing;
-
--- ── Insert existing auth users into profiles ──────────────────
-insert into profiles (id, username, full_name, role)
-select
-  id,
-  split_part(email, '@', 1) as username,
-  split_part(email, '@', 1) as full_name,
-  'staff' as role
-from auth.users
-on conflict (id) do nothing;
 
 select 'Quantomize schema created successfully!' as status;
