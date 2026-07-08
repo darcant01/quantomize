@@ -53,6 +53,9 @@ module.exports = async function handler(req, res) {
         { store_id: store.id, key: 'currency_symbol', value: '₱' },
         { store_id: store.id, key: 'receipt_prefix',  value: 'RCP' },
         { store_id: store.id, key: 'receipt_counter', value: '1' },
+        { store_id: store.id, key: 'store_address',   value: '' },
+        { store_id: store.id, key: 'store_phone',     value: '' },
+        { store_id: store.id, key: 'tin_number',      value: '' },
         { store_id: store.id, key: 'tax_rate',        value: '0' },
       ]);
       await supabase.from('categories').insert([

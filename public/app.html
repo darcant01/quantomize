@@ -830,6 +830,7 @@ function printReceipt() {
   const storeName  = SETTINGS.store_name    || 'Quantomize Store';
   const storeAddr  = SETTINGS.store_address || '';
   const storePhone = SETTINGS.store_phone   || '';
+  const storeTin   = SETTINGS.tin_number    || '';
 
   const itemRows = (s.sale_items||[]).map(i => `
     <tr>
@@ -858,6 +859,7 @@ function printReceipt() {
   <div class="center bold" style="font-size:15px">${escHtml(storeName)}</div>
   ${storeAddr ? `<div class="center small">${escHtml(storeAddr)}</div>` : ''}
   ${storePhone ? `<div class="center small">Tel: ${escHtml(storePhone)}</div>` : ''}
+  ${storeTin ? `<div class="center small">TIN: ${escHtml(storeTin)}</div>` : ''}
   <hr>
   <table>
     <tr><td>Receipt:</td><td style="text-align:right" class="bold">${escHtml(s.receipt_no)}</td></tr>
@@ -1027,26 +1029,56 @@ PAGES.settings = async () => {
   const s = r.settings;
   setContent(`
     <div class="table-card" style="max-width:600px">
-      <div class="table-header"><div class="table-title">⚙️ Store Settings</div></div>
+      <div class="table-header"><div class="table-title">🏪 Business Information</div></div>
       <div class="modal-body">
         <div class="form-group"><label>Store Name</label><input type="text" id="sName" value="${escHtml(s.store_name||'')}"></div>
-        <div class="form-group"><label>Address</label><input type="text" id="sAddr" value="${escHtml(s.store_address||'')}"></div>
-        <div class="form-group"><label>Phone</label><input type="text" id="sPhone" value="${escHtml(s.store_phone||'')}"></div>
+        <div class="form-group"><label>Business Address</label><input type="text" id="sAddr" value="${escHtml(s.store_address||'')}" placeholder="e.g. 123 Rizal St, Brgy. Poblacion, Quezon City"></div>
+        <div class="form-row">
+          <div class="form-group"><label>Phone</label><input type="text" id="sPhone" value="${escHtml(s.store_phone||'')}" placeholder="e.g. 0917 123 4567"></div>
+          <div class="form-group"><label>TIN Number</label><input type="text" id="sTin" value="${escHtml(s.tin_number||'')}" placeholder="e.g. 123-456-789-000"></div>
+        </div>
         <div class="form-row">
           <div class="form-group"><label>Currency Symbol</label><input type="text" id="sCur" value="${escHtml(s.currency_symbol||'₱')}" style="max-width:80px"></div>
           <div class="form-group"><label>Tax Rate (%)</label><input type="number" id="sTax" value="${s.tax_rate||0}" min="0" max="100" step="0.01"></div>
-          <div class="form-group"><label>Receipt Prefix</label><input type="text" id="sPrefix" value="${escHtml(s.receipt_prefix||'RCP')}"></div>
         </div>
-        <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+      </div>
+    </div>
+    <div class="table-card" style="max-width:600px">
+      <div class="table-header"><div class="table-title">🧾 Receipt Numbering</div></div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><label>Receipt Prefix</label><input type="text" id="sPrefix" value="${escHtml(s.receipt_prefix||'RCP')}" placeholder="e.g. INV, OR, RCP"></div>
+          <div class="form-group"><label>Next Receipt Number</label><input type="number" id="sCounter" value="${s.receipt_counter||1}" min="1" step="1"></div>
+        </div>
+        <p style="font-size:.78rem;color:#94a3b8;margin-bottom:1rem">
+          Preview of your next receipt: <strong style="color:#2563eb" id="receiptPreview">${escHtml(s.receipt_prefix||'RCP')}-${String(s.receipt_counter||1).padStart(6,'0')}</strong><br>
+          ⚠️ Changing the next number affects all future receipts. Make sure it doesn't overlap numbers already issued.
+        </p>
+        <button class="btn btn-primary" onclick="saveSettings()">💾 Save All Settings</button>
       </div>
     </div>`);
+  // wire up live preview (script tags injected via innerHTML don't run)
+  const upd = () => {
+    const el = document.getElementById('receiptPreview');
+    if (el) el.textContent = (g('sPrefix')||'RCP') + '-' + String(g('sCounter')||1).padStart(6,'0');
+  };
+  document.getElementById('sPrefix')?.addEventListener('input', upd);
+  document.getElementById('sCounter')?.addEventListener('input', upd);
 };
 
 async function saveSettings() {
+  const counter = parseInt(g('sCounter'));
+  if (!counter || counter < 1) return toast('Next receipt number must be 1 or higher', 'error');
   const settings={store_name:g('sName'),store_address:g('sAddr'),store_phone:g('sPhone'),
-    currency_symbol:g('sCur'),tax_rate:g('sTax'),receipt_prefix:g('sPrefix')};
+    tin_number:g('sTin'),currency_symbol:g('sCur'),tax_rate:g('sTax'),
+    receipt_prefix:g('sPrefix')||'RCP',receipt_counter:String(counter)};
   const r=await api('settings','saveSettings',{settings});
-  if(r.success){toast('Settings saved','success');CURRENCY=settings.currency_symbol||'₱';}
+  if(r.success){
+    toast('Settings saved','success');
+    CURRENCY=settings.currency_symbol||'₱';
+    SETTINGS={...SETTINGS,...settings};
+    document.getElementById('sidebarStoreName').textContent = settings.store_name || 'Store';
+  }
   else toast(r.error,'error');
 }
 
