@@ -1,3 +1,4 @@
+// api/dev.js — Platform Developer Hub (protected by DEV_KEY env var)
 const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
@@ -5,140 +6,157 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
-// Verify the caller is a superadmin
-async function requireSuperadmin(req, res) {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) { res.status(401).json({ success: false, error: 'Unauthorized' }); return null; }
-
-  const { data: { user }, error } = await supabase.auth.getUser(token);
-  if (error || !user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return null; }
-
-  const { data: profile } = await supabase
-    .from('profiles').select('*').eq('id', user.id).single();
-
-  if (!profile?.superadmin) {
-    res.status(403).json({ success: false, error: 'Developer access only' });
-    return null;
-  }
-  return profile;
-}
-
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const dev = await requireSuperadmin(req, res);
-  if (!dev) return;
+  // ── Developer authentication ────────────────────────────────
+  const devKey = req.headers.authorization?.replace('Bearer ', '');
+  if (!process.env.DEV_KEY) {
+    return res.status(500).json({ success: false, error: 'DEV_KEY not configured in environment variables' });
+  }
+  if (devKey !== process.env.DEV_KEY) {
+    return res.status(401).json({ success: false, error: 'Invalid developer key' });
+  }
 
   const { action } = req.body || {};
 
   try {
-    // ── Platform stats ─────────────────────────────────────────
-    if (action === 'getStats') {
-      const [{ count: storeCount }, { count: userCount }, { count: saleCount }, { data: salesData }] = await Promise.all([
+    if (action === 'overview') {
+      const [{ count: storeCount }, { count: userCount }, { count: saleCount }, { data: sales }] = await Promise.all([
         supabase.from('stores').select('*', { count: 'exact', head: true }),
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('sales').select('*', { count: 'exact', head: true }),
         supabase.from('sales').select('total').neq('status', 'voided'),
       ]);
-      const totalRevenue = (salesData || []).reduce((s, r) => s + Number(r.total), 0);
-      const { data: planData } = await supabase.from('stores').select('plan');
-      const plans = { free: 0, pro: 0, enterprise: 0 };
-      for (const s of planData || []) plans[s.plan] = (plans[s.plan] || 0) + 1;
-      return res.json({ success: true, stats: { storeCount, userCount, saleCount, totalRevenue, plans } });
+      const totalGMV = (sales || []).reduce((s, x) => s + Number(x.total), 0);
+      const { data: recentStores } = await supabase.from('stores')
+        .select('*').order('created_at', { ascending: false }).limit(5);
+      return res.json({ success: true, overview: {
+        storeCount: storeCount || 0, userCount: userCount || 0,
+        saleCount: saleCount || 0, totalGMV, recentStores: recentStores || []
+      }});
     }
 
-    // ── Stores ─────────────────────────────────────────────────
     if (action === 'getStores') {
       const { data: stores, error } = await supabase.from('stores')
         .select('*').order('created_at', { ascending: false });
       if (error) throw error;
-
-      // Attach owner + counts
-      const result = [];
-      for (const store of stores) {
-        const [{ data: owner }, { count: userCount }, { count: productCount }, { count: saleCount }] = await Promise.all([
-          supabase.from('profiles').select('full_name, username, id').eq('store_id', store.id).eq('role', 'owner').maybeSingle(),
+      const enriched = [];
+      for (const store of stores || []) {
+        const [{ count: users }, { count: products }, { data: sales }] = await Promise.all([
           supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('store_id', store.id),
           supabase.from('products').select('*', { count: 'exact', head: true }).eq('store_id', store.id),
-          supabase.from('sales').select('*', { count: 'exact', head: true }).eq('store_id', store.id),
+          supabase.from('sales').select('total').eq('store_id', store.id).neq('status', 'voided'),
         ]);
-        result.push({ ...store, owner, userCount, productCount, saleCount });
+        enriched.push({
+          ...store,
+          userCount: users || 0, productCount: products || 0,
+          saleCount: (sales || []).length,
+          revenue: (sales || []).reduce((s, x) => s + Number(x.total), 0),
+        });
       }
-      return res.json({ success: true, stores: result });
+      return res.json({ success: true, stores: enriched });
+    }
+
+    if (action === 'getStoreDetail') {
+      const { storeId } = req.body;
+      const [{ data: store }, { data: users }, { data: settings }] = await Promise.all([
+        supabase.from('stores').select('*').eq('id', storeId).single(),
+        supabase.from('profiles').select('*').eq('store_id', storeId).order('created_at'),
+        supabase.from('settings').select('*').eq('store_id', storeId),
+      ]);
+      const usersWithEmail = [];
+      for (const u of users || []) {
+        const { data: authUser } = await supabase.auth.admin.getUserById(u.id);
+        usersWithEmail.push({ ...u, email: authUser?.user?.email || '—' });
+      }
+      const settingsMap = {};
+      for (const s of settings || []) settingsMap[s.key] = s.value;
+      return res.json({ success: true, store, users: usersWithEmail, settings: settingsMap });
     }
 
     if (action === 'updateStore') {
-      const { id, plan, active, trial_ends, name } = req.body;
-      const update = {};
-      if (plan !== undefined)       update.plan = plan;
-      if (active !== undefined)     update.active = active;
-      if (trial_ends !== undefined) update.trial_ends = trial_ends;
-      if (name !== undefined)       update.name = name;
-      const { error } = await supabase.from('stores').update(update).eq('id', id);
+      const { storeId, name, plan, active, trial_ends } = req.body;
+      const updates = {};
+      if (name !== undefined)       updates.name = name;
+      if (plan !== undefined)       updates.plan = plan;
+      if (active !== undefined)     updates.active = active;
+      if (trial_ends !== undefined) updates.trial_ends = trial_ends;
+      const { error } = await supabase.from('stores').update(updates).eq('id', storeId);
       if (error) throw error;
       return res.json({ success: true });
     }
 
-    if (action === 'deleteStore') {
-      const { id } = req.body;
-      // Get all user ids of the store to remove auth users too
-      const { data: users } = await supabase.from('profiles').select('id').eq('store_id', id);
-      const { error } = await supabase.from('stores').delete().eq('id', id);
+    if (action === 'extendTrial') {
+      const { storeId, days } = req.body;
+      const { data: store } = await supabase.from('stores').select('trial_ends').eq('id', storeId).single();
+      const base = store?.trial_ends && new Date(store.trial_ends) > new Date()
+        ? new Date(store.trial_ends) : new Date();
+      base.setDate(base.getDate() + Number(days || 14));
+      const { error } = await supabase.from('stores').update({ trial_ends: base.toISOString() }).eq('id', storeId);
       if (error) throw error;
-      // Clean up auth users
+      return res.json({ success: true, newTrialEnd: base.toISOString() });
+    }
+
+    if (action === 'deleteStore') {
+      const { storeId } = req.body;
+      const { data: users } = await supabase.from('profiles').select('id').eq('store_id', storeId);
       for (const u of users || []) {
-        try { await supabase.auth.admin.deleteUser(u.id); } catch (e) {}
+        await supabase.auth.admin.deleteUser(u.id).catch(() => {});
+      }
+      const { error } = await supabase.from('stores').delete().eq('id', storeId);
+      if (error) throw error;
+      return res.json({ success: true });
+    }
+
+    if (action === 'updateUser') {
+      const { userId, full_name, role, active, password } = req.body;
+      const updates = {};
+      if (full_name !== undefined) updates.full_name = full_name;
+      if (role !== undefined)      updates.role = role;
+      if (active !== undefined)    updates.active = active;
+      if (Object.keys(updates).length) {
+        const { error } = await supabase.from('profiles').update(updates).eq('id', userId);
+        if (error) throw error;
+      }
+      if (password) {
+        const { error } = await supabase.auth.admin.updateUserById(userId, { password });
+        if (error) throw error;
       }
       return res.json({ success: true });
     }
 
-    // ── Users ──────────────────────────────────────────────────
-    if (action === 'getUsers') {
-      const { storeId } = req.body;
-      let query = supabase.from('profiles').select('*, stores(name)').order('created_at', { ascending: false });
-      if (storeId) query = query.eq('store_id', storeId);
-      const { data, error } = await query;
-      if (error) throw error;
-      // Attach emails
-      const { data: authList } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-      const emailMap = {};
-      for (const u of authList?.users || []) emailMap[u.id] = u.email;
-      return res.json({ success: true, users: data.map(u => ({ ...u, email: emailMap[u.id] || '' })) });
-    }
-
-    if (action === 'toggleUser') {
-      const { id, active } = req.body;
-      const { error } = await supabase.from('profiles').update({ active }).eq('id', id);
-      if (error) throw error;
+    if (action === 'deleteUser') {
+      const { userId } = req.body;
+      await supabase.auth.admin.deleteUser(userId);
       return res.json({ success: true });
     }
 
-    if (action === 'resetPassword') {
-      const { id, password } = req.body;
-      if (!password || password.length < 8)
-        return res.status(400).json({ success: false, error: 'Password min 8 characters' });
-      const { error } = await supabase.auth.admin.updateUserById(id, { password });
-      if (error) throw error;
+    if (action === 'updateStoreSettings') {
+      const { storeId, settings } = req.body;
+      for (const [key, value] of Object.entries(settings || {})) {
+        await supabase.from('settings').upsert(
+          { store_id: storeId, key, value },
+          { onConflict: 'store_id,key' }
+        );
+      }
       return res.json({ success: true });
     }
 
-    if (action === 'setSuperadmin') {
-      const { id, superadmin } = req.body;
-      const { error } = await supabase.from('profiles').update({ superadmin }).eq('id', id);
-      if (error) throw error;
-      return res.json({ success: true });
-    }
-
-    // ── Recent sales across the platform ───────────────────────
-    if (action === 'getRecentSales') {
-      const { data, error } = await supabase.from('sales')
-        .select('*, stores(name)')
-        .order('created_at', { ascending: false }).limit(50);
-      if (error) throw error;
-      return res.json({ success: true, sales: data });
+    if (action === 'diagnostics') {
+      const checks = {};
+      const tables = ['stores', 'profiles', 'categories', 'products', 'sales', 'sale_items', 'inventory_log', 'settings'];
+      for (const t of tables) {
+        const { count, error } = await supabase.from(t).select('*', { count: 'exact', head: true });
+        checks[t] = error ? `ERROR: ${error.message}` : `OK (${count} rows)`;
+      }
+      const { data: orphans } = await supabase.from('profiles').select('id, username').is('store_id', null);
+      checks.orphan_profiles = orphans?.length ? `${orphans.length} profiles without a store` : 'None';
+      return res.json({ success: true, checks });
     }
 
     return res.status(400).json({ success: false, error: 'Unknown action' });

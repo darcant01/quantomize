@@ -7,99 +7,135 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;font-size:14px;min-height:100vh}
-.topbar{background:#1e293b;padding:.9rem 1.5rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #334155;position:sticky;top:0;z-index:50}
-.topbar-title{font-weight:700;display:flex;align-items:center;gap:.5rem;font-size:1rem}
-.dev-badge{background:#7c3aed;color:white;font-size:.65rem;font-weight:700;padding:.2rem .5rem;border-radius:999px;text-transform:uppercase;letter-spacing:.05em}
-.container{max-width:1200px;margin:0 auto;padding:1.5rem}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem;margin-bottom:1.5rem}
-.stat-card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:1.1rem}
-.stat-label{font-size:.7rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em}
+.topbar{background:#1e293b;padding:.875rem 1.5rem;border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.topbar-title{font-weight:700;display:flex;align-items:center;gap:.5rem}
+.dev-badge{background:#7c3aed;color:white;font-size:.65rem;font-weight:700;padding:.15rem .5rem;border-radius:999px;text-transform:uppercase}
+.content{padding:1.5rem;max-width:1200px;margin:0 auto}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem}
+.stat-card{background:#1e293b;border-radius:12px;padding:1.25rem;border:1px solid #334155}
+.stat-label{font-size:.72rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em}
 .stat-value{font-size:1.6rem;font-weight:700;color:#f1f5f9;margin-top:.2rem}
-.stat-sub{font-size:.72rem;color:#64748b;margin-top:.15rem}
-.tabs{display:flex;gap:.5rem;margin-bottom:1.25rem;flex-wrap:wrap}
-.tab{padding:.5rem 1.1rem;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;background:#1e293b;border:1px solid #334155;color:#94a3b8;transition:all .15s}
-.tab:hover{color:#e2e8f0}
-.tab.active{background:#7c3aed;border-color:#7c3aed;color:white}
-.card{background:#1e293b;border:1px solid #334155;border-radius:12px;overflow:hidden;margin-bottom:1rem}
-.card-header{padding:.9rem 1.25rem;border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem}
-.card-title{font-weight:700;font-size:.9rem}
-table{width:100%;border-collapse:collapse;font-size:.83rem}
-thead th{background:#0f172a;padding:.6rem 1rem;text-align:left;font-size:.7rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
-tbody td{padding:.7rem 1rem;border-bottom:1px solid #273449;color:#cbd5e1;vertical-align:middle}
-tbody tr:last-child td{border-bottom:none}
+.card{background:#1e293b;border-radius:12px;border:1px solid #334155;overflow:hidden;margin-bottom:1.25rem}
+.card-header{padding:1rem 1.25rem;border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap}
+.card-title{font-weight:700;color:#f1f5f9}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+thead th{background:#0f172a;padding:.6rem 1rem;text-align:left;font-size:.7rem;font-weight:600;color:#94a3b8;text-transform:uppercase;white-space:nowrap;border-bottom:1px solid #334155}
+tbody td{padding:.7rem 1rem;border-bottom:1px solid #293548;color:#cbd5e1;vertical-align:middle}
 tbody tr:hover{background:#26334a}
+.btn{padding:.45rem .9rem;border-radius:8px;font-size:.78rem;font-weight:600;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:.35rem}
+.btn-primary{background:#7c3aed;color:white}
+.btn-primary:hover{background:#6d28d9}
+.btn-danger{background:#dc2626;color:white}
+.btn-danger:hover{background:#b91c1c}
+.btn-outline{background:transparent;color:#cbd5e1;border:1px solid #475569}
+.btn-outline:hover{border-color:#7c3aed;color:#a78bfa}
+.btn-sm{padding:.3rem .6rem;font-size:.72rem}
 .badge{padding:.18rem .55rem;border-radius:999px;font-size:.68rem;font-weight:600;display:inline-block}
 .badge-green{background:#14532d;color:#86efac}
 .badge-red{background:#7f1d1d;color:#fca5a5}
 .badge-purple{background:#4c1d95;color:#c4b5fd}
 .badge-blue{background:#1e3a8a;color:#93c5fd}
-.badge-gray{background:#334155;color:#94a3b8}
 .badge-yellow{background:#713f12;color:#fde047}
-.btn{padding:.4rem .8rem;border-radius:7px;font-size:.75rem;font-weight:600;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem}
-.btn-purple{background:#7c3aed;color:white}
-.btn-purple:hover{background:#6d28d9}
-.btn-outline{background:transparent;color:#94a3b8;border:1px solid #475569}
-.btn-outline:hover{color:#e2e8f0;border-color:#94a3b8}
-.btn-danger{background:#991b1b;color:#fecaca}
-.btn-danger:hover{background:#b91c1c}
-.btn-green{background:#166534;color:#bbf7d0}
-select,input{background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:.45rem .7rem;border-radius:7px;font-size:.8rem;outline:none}
-select:focus,input:focus{border-color:#7c3aed}
-.gap-sm{display:flex;gap:.4rem;flex-wrap:wrap}
-.loading{text-align:center;padding:2rem;color:#64748b}
-.spinner{display:inline-block;width:20px;height:20px;border:2px solid #334155;border-top-color:#7c3aed;border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-#toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#1e293b;border:1px solid #475569;color:#e2e8f0;padding:.75rem 1.25rem;border-radius:10px;font-size:.85rem;z-index:9999;transform:translateY(100px);opacity:0;transition:all .3s}
-#toast.show{transform:translateY(0);opacity:1}
-#toast.success{border-color:#16a34a;color:#86efac}
-#toast.error{border-color:#dc2626;color:#fca5a5}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem}
+input,select{width:100%;padding:.55rem .75rem;border:1.5px solid #334155;border-radius:8px;font-size:.85rem;outline:none;background:#0f172a;color:#e2e8f0;font-family:inherit}
+input:focus,select:focus{border-color:#7c3aed}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:.78rem;font-weight:600;color:#94a3b8;margin-bottom:.35rem}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem}
 .modal-overlay.open{display:flex}
-.modal{background:#1e293b;border:1px solid #475569;border-radius:14px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
-.modal-header{padding:1.1rem 1.4rem;border-bottom:1px solid #334155;font-weight:700;display:flex;justify-content:space-between;align-items:center}
-.modal-body{padding:1.4rem}
-.modal-footer{padding:1rem 1.4rem;border-top:1px solid #334155;display:flex;justify-content:flex-end;gap:.5rem}
-.form-group{margin-bottom:.9rem}
-.form-group label{display:block;font-size:.75rem;font-weight:600;color:#94a3b8;margin-bottom:.3rem}
-.form-group input,.form-group select{width:100%}
-.modal-close{cursor:pointer;background:none;border:none;color:#64748b;font-size:1.1rem}
-.denied{text-align:center;padding:4rem 1rem}
-.denied h2{color:#f1f5f9;margin-bottom:.5rem}
-.denied p{color:#64748b}
+.modal{background:#1e293b;border:1px solid #334155;border-radius:16px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto}
+.modal-header{padding:1.1rem 1.5rem;border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-weight:700;color:#f1f5f9}
+.modal-close{cursor:pointer;font-size:1.2rem;color:#64748b;background:none;border:none}
+.modal-body{padding:1.5rem}
+.modal-footer{padding:1rem 1.5rem;border-top:1px solid #334155;display:flex;justify-content:flex-end;gap:.5rem}
+#toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#f1f5f9;color:#0f172a;padding:.75rem 1.25rem;border-radius:10px;font-size:.85rem;font-weight:600;z-index:9999;transform:translateY(100px);opacity:0;transition:all .3s}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.error{background:#dc2626;color:white}
+#toast.success{background:#16a34a;color:white}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.login-card{background:#1e293b;border:1px solid #334155;border-radius:20px;padding:2.5rem;width:100%;max-width:400px}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid #334155;border-top-color:#7c3aed;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{text-align:center;padding:2rem;color:#64748b}
+.mono{font-family:'Courier New',monospace;font-size:.78rem;color:#94a3b8}
+.diag-row{display:flex;justify-content:space-between;padding:.5rem 1.25rem;border-bottom:1px solid #293548;font-size:.82rem}
+.tabs{display:flex;gap:.25rem;padding:.5rem 1.25rem 0}
+.tab{padding:.5rem 1rem;cursor:pointer;font-size:.82rem;font-weight:600;color:#94a3b8;border-bottom:2px solid transparent}
+.tab.active{color:#a78bfa;border-bottom-color:#7c3aed}
 </style>
 </head>
 <body>
 
-<div class="topbar">
-  <div class="topbar-title">⚡ Quantomize <span class="dev-badge">Developer Hub</span></div>
-  <div class="gap-sm">
-    <button class="btn btn-outline" onclick="location.href='/app'">← Back to App</button>
-    <button class="btn btn-outline" onclick="localStorage.clear();location.href='/login'">Sign Out</button>
+<!-- Dev key gate -->
+<div class="login-wrap" id="gateView">
+  <div class="login-card">
+    <div style="text-align:center;margin-bottom:1.5rem">
+      <div style="font-size:2.5rem;margin-bottom:.5rem">🛠️</div>
+      <h1 style="font-size:1.3rem;color:#f1f5f9">Developer Hub</h1>
+      <p style="font-size:.82rem;color:#64748b;margin-top:.25rem">Quantomize Platform Administration</p>
+    </div>
+    <div class="form-group">
+      <label>Developer Key</label>
+      <input type="password" id="devKeyInput" placeholder="Enter your DEV_KEY">
+    </div>
+    <button class="btn btn-primary" style="width:100%;padding:.75rem" onclick="unlock()">Unlock</button>
+    <p id="gateError" style="color:#fca5a5;font-size:.8rem;margin-top:.75rem;text-align:center;display:none"></p>
   </div>
 </div>
 
-<div class="container" id="main">
-  <div class="loading"><div class="spinner"></div></div>
+<!-- Main hub -->
+<div id="hubView" style="display:none">
+  <div class="topbar">
+    <div class="topbar-title">🛠️ Quantomize <span class="dev-badge">Dev Hub</span></div>
+    <div style="display:flex;gap:.5rem">
+      <button class="btn btn-outline btn-sm" onclick="runDiagnostics()">🩺 Diagnostics</button>
+      <button class="btn btn-outline btn-sm" onclick="loadAll()">↻ Refresh</button>
+      <button class="btn btn-outline btn-sm" onclick="lock()">🔒 Lock</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="stats-grid" id="statsGrid">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🏢 All Stores</div>
+        <input type="text" placeholder="Search stores…" oninput="filterStores(this.value)" style="max-width:220px">
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th>Store</th><th>Plan</th><th>Status</th><th>Trial Ends</th>
+            <th>Users</th><th>Products</th><th>Sales</th><th>Revenue</th><th>Created</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="storesBody"><tr><td colspan="10" class="loading"><div class="spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card" id="diagCard" style="display:none">
+      <div class="card-header"><div class="card-title">🩺 System Diagnostics</div></div>
+      <div id="diagBody"></div>
+    </div>
+  </div>
 </div>
 
 <div id="toast"></div>
 <div id="modalContainer"></div>
 
 <script>
-const TOKEN = localStorage.getItem('token') || '';
-if (!TOKEN) location.href = '/login';
-
-let STORES = [], USERS = [], currentTab = 'stores';
+let DEV_KEY = sessionStorage.getItem('devKey') || '';
+let STORES = [];
 
 async function api(action, data = {}) {
   try {
     const res = await fetch('/api/dev', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + DEV_KEY },
       body: JSON.stringify({ action, ...data })
     });
-    return await res.json();
-  } catch(e) { return { success: false, error: 'Network error' }; }
+    return res.json();
+  } catch { return { success: false, error: 'Network error' }; }
 }
 
 let toastTimer;
@@ -107,224 +143,234 @@ function toast(msg, type='') {
   const el = document.getElementById('toast');
   el.textContent = msg; el.className = 'show ' + type;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.className = '', 3000);
+  toastTimer = setTimeout(() => el.className = '', 3200);
 }
-function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-function fmtDate(d){return d?new Date(d).toLocaleDateString('en',{month:'short',day:'numeric',year:'numeric'}):'—'}
-function fmtMoney(n){return '₱'+Number(n).toLocaleString('en',{minimumFractionDigits:2})}
-function g(id){const el=document.getElementById(id);return el?el.value.trim():''}
-function showModal(html){document.getElementById('modalContainer').innerHTML=`<div class="modal-overlay open" onclick="if(event.target.classList.contains('modal-overlay'))closeModal()"><div class="modal">${html}</div></div>`}
-function closeModal(){document.getElementById('modalContainer').innerHTML=''}
+function fmt(n) { return '₱' + Number(n).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtDate(d) { return d ? new Date(d).toLocaleDateString('en',{month:'short',day:'numeric',year:'numeric'}) : '—'; }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function g(id) { const el=document.getElementById(id); return el?el.value.trim():''; }
+function showModal(html) { document.getElementById('modalContainer').innerHTML =
+  `<div class="modal-overlay open" onclick="if(event.target.classList.contains('modal-overlay'))closeModal()"><div class="modal">${html}</div></div>`; }
+function closeModal() { document.getElementById('modalContainer').innerHTML=''; }
 
-async function init() {
-  const statsR = await api('getStats');
-  if (!statsR.success) {
-    document.getElementById('main').innerHTML = `
-      <div class="denied">
-        <h2>🔒 Access Denied</h2>
-        <p>${esc(statsR.error || 'This area is for platform developers only.')}</p>
-        <br><button class="btn btn-purple" onclick="location.href='/app'">Go to App</button>
-      </div>`;
-    return;
+async function unlock() {
+  DEV_KEY = document.getElementById('devKeyInput').value.trim();
+  const r = await api('overview');
+  if (r.success) {
+    sessionStorage.setItem('devKey', DEV_KEY);
+    document.getElementById('gateView').style.display = 'none';
+    document.getElementById('hubView').style.display = 'block';
+    loadAll();
+  } else {
+    const err = document.getElementById('gateError');
+    err.textContent = r.error || 'Invalid key';
+    err.style.display = 'block';
   }
-  renderLayout(statsR.stats);
-  loadTab('stores');
+}
+function lock() { sessionStorage.removeItem('devKey'); location.reload(); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('gateView').style.display !== 'none') unlock();
+});
+
+async function loadAll() {
+  const [ov, st] = await Promise.all([api('overview'), api('getStores')]);
+  if (ov.success) {
+    const o = ov.overview;
+    document.getElementById('statsGrid').innerHTML = `
+      <div class="stat-card"><div class="stat-label">Total Stores</div><div class="stat-value">${o.storeCount}</div></div>
+      <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value">${o.userCount}</div></div>
+      <div class="stat-card"><div class="stat-label">Total Sales</div><div class="stat-value">${o.saleCount}</div></div>
+      <div class="stat-card"><div class="stat-label">Platform GMV</div><div class="stat-value">${fmt(o.totalGMV)}</div></div>`;
+  }
+  if (st.success) { STORES = st.stores; renderStores(STORES); }
 }
 
-function renderLayout(s) {
-  document.getElementById('main').innerHTML = `
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-label">Total Stores</div><div class="stat-value">${s.storeCount}</div>
-        <div class="stat-sub">${s.plans.free||0} free · ${s.plans.pro||0} pro · ${s.plans.enterprise||0} ent</div></div>
-      <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value">${s.userCount}</div></div>
-      <div class="stat-card"><div class="stat-label">Total Sales</div><div class="stat-value">${s.saleCount}</div></div>
-      <div class="stat-card"><div class="stat-label">Platform GMV</div><div class="stat-value">${fmtMoney(s.totalRevenue)}</div>
-        <div class="stat-sub">All-time, all stores</div></div>
+function renderStores(stores) {
+  const planBadge = { free:'badge-blue', pro:'badge-purple', enterprise:'badge-yellow' };
+  document.getElementById('storesBody').innerHTML = stores.length === 0
+    ? `<tr><td colspan="10" style="text-align:center;padding:2rem;color:#64748b">No stores yet</td></tr>`
+    : stores.map(s => `
+      <tr>
+        <td><strong style="color:#f1f5f9">${esc(s.name)}</strong><br><span class="mono">${s.id.slice(0,8)}…</span></td>
+        <td><span class="badge ${planBadge[s.plan]||'badge-blue'}">${s.plan}</span></td>
+        <td><span class="badge ${s.active?'badge-green':'badge-red'}">${s.active?'Active':'Suspended'}</span></td>
+        <td>${fmtDate(s.trial_ends)}</td>
+        <td>${s.userCount}</td>
+        <td>${s.productCount}</td>
+        <td>${s.saleCount}</td>
+        <td>${fmt(s.revenue)}</td>
+        <td>${fmtDate(s.created_at)}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-outline btn-sm" onclick="openStore('${s.id}')">Manage</button>
+        </td>
+      </tr>`).join('');
+}
+
+function filterStores(q) {
+  renderStores(STORES.filter(s => s.name.toLowerCase().includes(q.toLowerCase())));
+}
+
+async function openStore(storeId) {
+  const r = await api('getStoreDetail', { storeId });
+  if (!r.success) return toast(r.error, 'error');
+  const { store, users, settings } = r;
+
+  const usersHtml = users.map(u => `
+    <tr>
+      <td><strong style="color:#f1f5f9">${esc(u.full_name)}</strong><br><span class="mono">${esc(u.email)}</span></td>
+      <td><span class="badge ${u.role==='owner'?'badge-purple':u.role==='admin'?'badge-blue':'badge-green'}">${u.role}</span></td>
+      <td><span class="badge ${u.active?'badge-green':'badge-red'}">${u.active?'Active':'Off'}</span></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline btn-sm" onclick='openUserEdit(${JSON.stringify(u).replace(/'/g,"&#39;")}, "${store.id}")'>Edit</button>
+        <button class="btn btn-danger btn-sm" onclick='devDeleteUser("${u.id}","${store.id}")'>Del</button>
+      </td>
+    </tr>`).join('');
+
+  showModal(`
+    <div class="modal-header">
+      <div class="modal-title">🏢 ${esc(store.name)}</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
-    <div class="tabs">
-      <div class="tab" id="tab-stores"  onclick="loadTab('stores')">🏢 Stores</div>
-      <div class="tab" id="tab-users"   onclick="loadTab('users')">👥 All Users</div>
-      <div class="tab" id="tab-sales"   onclick="loadTab('sales')">🧾 Recent Sales</div>
-    </div>
-    <div id="tabContent"><div class="loading"><div class="spinner"></div></div></div>`;
-}
-
-function loadTab(tab) {
-  currentTab = tab;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('tab-'+tab)?.classList.add('active');
-  document.getElementById('tabContent').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  if (tab==='stores') loadStores();
-  if (tab==='users')  loadUsers();
-  if (tab==='sales')  loadSales();
-}
-
-// ── Stores tab ────────────────────────────────────────────
-async function loadStores() {
-  const r = await api('getStores');
-  STORES = r.stores || [];
-  const planBadge = { free:'badge-gray', pro:'badge-purple', enterprise:'badge-blue' };
-  const rows = STORES.map(s => {
-    const trialLeft = s.trial_ends ? Math.ceil((new Date(s.trial_ends) - Date.now())/86400000) : null;
-    return `<tr>
-      <td><strong>${esc(s.name)}</strong><br><span style="font-size:.7rem;color:#64748b">${esc(s.owner?.full_name||'no owner')}</span></td>
-      <td><span class="badge ${planBadge[s.plan]||'badge-gray'}">${s.plan}</span></td>
-      <td>${s.plan==='free' && trialLeft !== null
-            ? (trialLeft > 0 ? `<span class="badge badge-yellow">${trialLeft}d left</span>` : `<span class="badge badge-red">Expired</span>`)
-            : '—'}</td>
-      <td>${s.userCount}</td>
-      <td>${s.productCount}</td>
-      <td>${s.saleCount}</td>
-      <td><span class="badge ${s.active?'badge-green':'badge-red'}">${s.active?'Active':'Suspended'}</span></td>
-      <td>${fmtDate(s.created_at)}</td>
-      <td><div class="gap-sm">
-        <button class="btn btn-outline" onclick='editStore("${s.id}")'>Edit</button>
-        <button class="btn ${s.active?'btn-danger':'btn-green'}" onclick='toggleStore("${s.id}",${!s.active})'>${s.active?'Suspend':'Activate'}</button>
-        <button class="btn btn-danger" onclick='deleteStore("${s.id}","${esc(s.name)}")'>🗑</button>
-      </div></td>
-    </tr>`;
-  }).join('') || `<tr><td colspan="9" style="text-align:center;padding:2rem;color:#64748b">No stores yet</td></tr>`;
-
-  document.getElementById('tabContent').innerHTML = `
-    <div class="card">
-      <div class="card-header"><div class="card-title">All Stores (${STORES.length})</div></div>
-      <div style="overflow-x:auto">
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Store Name</label>
+          <input type="text" id="mStoreName" value="${esc(store.name)}">
+        </div>
+        <div class="form-group">
+          <label>Plan</label>
+          <select id="mPlan">
+            <option value="free" ${store.plan==='free'?'selected':''}>Free</option>
+            <option value="pro" ${store.plan==='pro'?'selected':''}>Pro</option>
+            <option value="enterprise" ${store.plan==='enterprise'?'selected':''}>Enterprise</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Status</label>
+          <select id="mActive">
+            <option value="true" ${store.active?'selected':''}>Active</option>
+            <option value="false" ${!store.active?'selected':''}>Suspended</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Trial Ends: ${fmtDate(store.trial_ends)}</label>
+          <button class="btn btn-outline" style="width:100%" onclick="extendTrial('${store.id}')">+ Extend 14 days</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:.5rem;margin-bottom:1.25rem">
+        <button class="btn btn-primary" onclick="saveStore('${store.id}')">💾 Save Store</button>
+        <button class="btn btn-danger" onclick="devDeleteStore('${store.id}','${esc(store.name)}')">🗑 Delete Store</button>
+      </div>
+      <div style="border-top:1px solid #334155;padding-top:1rem">
+        <div style="font-weight:700;color:#f1f5f9;margin-bottom:.75rem">👥 Users (${users.length})</div>
         <table>
-          <thead><tr><th>Store</th><th>Plan</th><th>Trial</th><th>Users</th><th>Products</th><th>Sales</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
-          <tbody>${rows}</tbody>
+          <thead><tr><th>User</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>${usersHtml || '<tr><td colspan="4" style="text-align:center;color:#64748b;padding:1rem">No users</td></tr>'}</tbody>
         </table>
       </div>
-    </div>`;
-}
-
-function editStore(id) {
-  const s = STORES.find(x=>x.id===id);
-  showModal(`
-    <div class="modal-header">Edit Store — ${esc(s.name)}<button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div class="modal-body">
-      <div class="form-group"><label>Store Name</label><input id="esName" value="${esc(s.name)}"></div>
-      <div class="form-group"><label>Plan</label>
-        <select id="esPlan">
-          <option value="free" ${s.plan==='free'?'selected':''}>Free</option>
-          <option value="pro" ${s.plan==='pro'?'selected':''}>Pro</option>
-          <option value="enterprise" ${s.plan==='enterprise'?'selected':''}>Enterprise</option>
-        </select>
-      </div>
-      <div class="form-group"><label>Trial Ends</label><input type="date" id="esTrial" value="${s.trial_ends ? s.trial_ends.split('T')[0] : ''}"></div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-purple" onclick='saveStore("${id}")'>Save</button>
-    </div>`);
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal()">Close</button></div>`);
 }
 
-async function saveStore(id) {
+async function saveStore(storeId) {
   const r = await api('updateStore', {
-    id, name: g('esName'), plan: g('esPlan'),
-    trial_ends: g('esTrial') ? new Date(g('esTrial')).toISOString() : null
+    storeId,
+    name:   g('mStoreName'),
+    plan:   g('mPlan'),
+    active: g('mActive') === 'true'
   });
-  if (r.success) { toast('Store updated','success'); closeModal(); loadStores(); }
-  else toast(r.error,'error');
+  if (r.success) { toast('Store updated', 'success'); closeModal(); loadAll(); }
+  else toast(r.error, 'error');
 }
 
-async function toggleStore(id, active) {
-  const r = await api('updateStore', { id, active });
-  if (r.success) { toast(active?'Store activated':'Store suspended','success'); loadStores(); }
-  else toast(r.error,'error');
+async function extendTrial(storeId) {
+  const r = await api('extendTrial', { storeId, days: 14 });
+  if (r.success) { toast('Trial extended to ' + fmtDate(r.newTrialEnd), 'success'); closeModal(); loadAll(); }
+  else toast(r.error, 'error');
 }
 
-async function deleteStore(id, name) {
-  if (!confirm(`⚠️ DELETE "${name}" permanently?\n\nThis removes ALL its data: products, sales, users. Cannot be undone.`)) return;
-  if (!confirm(`Really sure? Type of action: PERMANENT DELETE of "${name}"`)) return;
-  const r = await api('deleteStore', { id });
-  if (r.success) { toast('Store deleted','success'); loadStores(); }
-  else toast(r.error,'error');
+async function devDeleteStore(storeId, name) {
+  if (!confirm(`⚠️ PERMANENTLY delete "${name}" and ALL its data (users, products, sales)? This cannot be undone.`)) return;
+  if (!confirm(`Really sure? Type of confirmation: deleting "${name}" now.`)) return;
+  const r = await api('deleteStore', { storeId });
+  if (r.success) { toast('Store deleted', 'success'); closeModal(); loadAll(); }
+  else toast(r.error, 'error');
 }
 
-// ── Users tab ─────────────────────────────────────────────
-async function loadUsers() {
-  const r = await api('getUsers', {});
-  USERS = r.users || [];
-  const roleBadge = { owner:'badge-purple', admin:'badge-blue', staff:'badge-gray' };
-  const rows = USERS.map(u => `
-    <tr>
-      <td><strong>${esc(u.full_name)}</strong><br><span style="font-size:.7rem;color:#64748b">${esc(u.email)}</span></td>
-      <td>${esc(u.username)}</td>
-      <td>${esc(u.stores?.name||'—')}</td>
-      <td><span class="badge ${roleBadge[u.role]||'badge-gray'}">${u.role}</span>${u.superadmin?' <span class="badge badge-purple">⚡ DEV</span>':''}</td>
-      <td><span class="badge ${u.active?'badge-green':'badge-red'}">${u.active?'Active':'Disabled'}</span></td>
-      <td>${fmtDate(u.created_at)}</td>
-      <td><div class="gap-sm">
-        <button class="btn btn-outline" onclick='resetPwd("${u.id}","${esc(u.full_name)}")'>Reset PW</button>
-        <button class="btn ${u.active?'btn-danger':'btn-green'}" onclick='toggleUser("${u.id}",${!u.active})'>${u.active?'Disable':'Enable'}</button>
-      </div></td>
-    </tr>`).join('') || `<tr><td colspan="7" style="text-align:center;padding:2rem;color:#64748b">No users</td></tr>`;
-
-  document.getElementById('tabContent').innerHTML = `
-    <div class="card">
-      <div class="card-header"><div class="card-title">All Platform Users (${USERS.length})</div></div>
-      <div style="overflow-x:auto">
-        <table>
-          <thead><tr><th>User</th><th>Username</th><th>Store</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-    </div>`;
-}
-
-function resetPwd(id, name) {
+function openUserEdit(u, storeId) {
   showModal(`
-    <div class="modal-header">Reset Password — ${esc(name)}<button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-header">
+      <div class="modal-title">✏️ ${esc(u.full_name)}</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
     <div class="modal-body">
-      <div class="form-group"><label>New Password (min 8 chars)</label><input type="text" id="newPwd" placeholder="Enter new password"></div>
+      <div class="form-group"><label>Full Name</label><input type="text" id="uName" value="${esc(u.full_name)}"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Role</label>
+          <select id="uRole">
+            <option value="owner" ${u.role==='owner'?'selected':''}>Owner</option>
+            <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+            <option value="staff" ${u.role==='staff'?'selected':''}>Staff</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="uActive">
+            <option value="true" ${u.active?'selected':''}>Active</option>
+            <option value="false" ${!u.active?'selected':''}>Disabled</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Reset Password (leave blank to keep)</label>
+        <input type="password" id="uPassword" placeholder="New password">
+      </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-purple" onclick='submitPwd("${id}")'>Reset</button>
+      <button class="btn btn-outline" onclick="openStore('${storeId}')">← Back</button>
+      <button class="btn btn-primary" onclick="devSaveUser('${u.id}','${storeId}')">Save User</button>
     </div>`);
 }
 
-async function submitPwd(id) {
-  const password = g('newPwd');
-  if (password.length < 8) return toast('Min 8 characters','error');
-  const r = await api('resetPassword', { id, password });
-  if (r.success) { toast('Password reset','success'); closeModal(); }
-  else toast(r.error,'error');
+async function devSaveUser(userId, storeId) {
+  const r = await api('updateUser', {
+    userId,
+    full_name: g('uName'),
+    role:      g('uRole'),
+    active:    g('uActive') === 'true',
+    password:  g('uPassword') || undefined
+  });
+  if (r.success) { toast('User updated', 'success'); openStore(storeId); }
+  else toast(r.error, 'error');
 }
 
-async function toggleUser(id, active) {
-  const r = await api('toggleUser', { id, active });
-  if (r.success) { toast(active?'User enabled':'User disabled','success'); loadUsers(); }
-  else toast(r.error,'error');
+async function devDeleteUser(userId, storeId) {
+  if (!confirm('Permanently delete this user account?')) return;
+  const r = await api('deleteUser', { userId });
+  if (r.success) { toast('User deleted', 'success'); openStore(storeId); }
+  else toast(r.error, 'error');
 }
 
-// ── Sales tab ─────────────────────────────────────────────
-async function loadSales() {
-  const r = await api('getRecentSales');
-  const sales = r.sales || [];
-  const rows = sales.map(s => `
-    <tr>
-      <td><strong>${esc(s.receipt_no)}</strong></td>
-      <td>${esc(s.stores?.name||'—')}</td>
-      <td>${esc(s.username||'—')}</td>
-      <td>${fmtMoney(s.total)}</td>
-      <td><span class="badge ${s.status==='voided'?'badge-red':'badge-green'}">${s.status}</span></td>
-      <td>${new Date(s.created_at).toLocaleString('en',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
-    </tr>`).join('') || `<tr><td colspan="6" style="text-align:center;padding:2rem;color:#64748b">No sales yet</td></tr>`;
-
-  document.getElementById('tabContent').innerHTML = `
-    <div class="card">
-      <div class="card-header"><div class="card-title">Recent Sales — All Stores (last 50)</div></div>
-      <div style="overflow-x:auto">
-        <table>
-          <thead><tr><th>Receipt</th><th>Store</th><th>Staff</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-    </div>`;
+async function runDiagnostics() {
+  document.getElementById('diagCard').style.display = 'block';
+  document.getElementById('diagBody').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  const r = await api('diagnostics');
+  if (r.success) {
+    document.getElementById('diagBody').innerHTML = Object.entries(r.checks).map(([k,v]) => `
+      <div class="diag-row">
+        <span class="mono">${k}</span>
+        <span style="color:${String(v).startsWith('ERROR')?'#fca5a5':'#86efac'}">${v}</span>
+      </div>`).join('');
+  } else {
+    document.getElementById('diagBody').innerHTML = `<div class="diag-row" style="color:#fca5a5">${r.error}</div>`;
+  }
 }
 
-init();
+// Auto-unlock if key stored
+if (DEV_KEY) unlock();
 </script>
 </body>
 </html>
