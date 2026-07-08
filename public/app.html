@@ -180,6 +180,28 @@ let PRODUCTS   = [];
 let CATEGORIES = [];
 let CURRENCY = '₱';
 
+// ── Permissions ──────────────────────────────────────────
+const PERM_LABELS = {
+  dashboard:       '📊 Dashboard',
+  pos:             '🛒 Point of Sale (checkout)',
+  products_view:   '📦 View products',
+  products_manage: '✏️ Manage products & stock',
+  stock_log:       '📋 View stock log',
+  sales_view_all:  '🧾 View ALL sales (off = own only)',
+  sales_void:      '🗑 Void sales',
+  reports:         '📈 View reports',
+  users_manage:    '👥 Manage users',
+  settings_manage: '⚙️ Change settings',
+};
+const ROLE_DEFAULTS = {
+  owner: Object.fromEntries(Object.keys(PERM_LABELS).map(k => [k, true])),
+  admin: Object.fromEntries(Object.keys(PERM_LABELS).map(k => [k, true])),
+  staff: { dashboard:false, pos:true, products_view:true, products_manage:false,
+           stock_log:false, sales_view_all:false, sales_void:false, reports:false,
+           users_manage:false, settings_manage:false }
+};
+let PERMS = JSON.parse(localStorage.getItem('perms') || 'null') || ROLE_DEFAULTS[ROLE] || ROLE_DEFAULTS.staff;
+
 if (!TOKEN) window.location.href = '/login';
 
 // ── API helpers ──────────────────────────────────────────
@@ -212,9 +234,14 @@ function toast(msg, type = '') {
 }
 
 // ── Init ─────────────────────────────────────────────────
+const PERMS = JSON.parse(localStorage.getItem('perms') || '{}');
+const IS_ADMIN = ROLE === 'owner' || ROLE === 'admin';
+function can(perm) { return IS_ADMIN || !!PERMS[perm]; }
+
 async function init() {
   document.getElementById('userName').textContent = USERNAME;
-  document.getElementById('userRole').textContent = ROLE === 'admin' ? '👑 Admin' : '👤 Staff';
+  document.getElementById('userRole').textContent =
+    ROLE === 'owner' ? '👑 Owner' : ROLE === 'admin' ? '🛡️ Admin' : '👤 Staff';
   renderNav();
   const r = await api('settings', 'getSettings');
   if (r.success) {
@@ -223,7 +250,8 @@ async function init() {
     document.getElementById('sidebarStoreName').textContent = SETTINGS.store_name || 'Store';
     document.title = (SETTINGS.store_name || 'Quantomize') + ' — Dashboard';
   }
-  navigate('dashboard');
+  // Land on the first page the user can access
+  navigate(IS_ADMIN ? 'dashboard' : can('pos') ? 'pos' : 'products');
 }
 
 function fmt(n) { return CURRENCY + Number(n).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -252,14 +280,19 @@ const ADMIN_MENU = [
   {id:'users',      label:'Users',        icon:'👥'},
   {id:'settings',   label:'Settings',     icon:'⚙️'},
 ];
-const STAFF_MENU = [
-  {id:'pos',      label:'Point of Sale',icon:'🛒'},
-  {id:'products', label:'Products',     icon:'📦'},
-  {id:'sales',    label:'My Sales',     icon:'🧾'},
-];
+
+function buildStaffMenu() {
+  const m = [];
+  if (can('pos')) m.push({id:'pos', label:'Point of Sale', icon:'🛒'});
+  m.push({id:'products', label:'Products', icon:'📦'});
+  if (can('inventory_view')) m.push({id:'stock', label:'Stock Log', icon:'📋'});
+  m.push({id:'sales', label: can('sales_view_all') ? 'Sales History' : 'My Sales', icon:'🧾'});
+  if (can('reports')) m.push({id:'reports', label:'Reports', icon:'📈'});
+  return m;
+}
 
 function renderNav() {
-  const menu = ROLE === 'admin' ? ADMIN_MENU : STAFF_MENU;
+  const menu = IS_ADMIN ? ADMIN_MENU : buildStaffMenu();
   document.getElementById('sidebarNav').innerHTML = menu.map(m =>
     m.section
       ? `<div class="nav-section">${m.section}</div>`
@@ -503,7 +536,7 @@ async function checkout() {
 
 // ── Products ─────────────────────────────────────────────
 PAGES.products = async () => {
-  if (ROLE==='admin') {
+  if (can('products_manage')) {
     document.getElementById('topbarActions').innerHTML =
       `<button class="btn btn-outline" onclick="openImportModal()">📥 Import Starter Pack</button>
        <button class="btn btn-primary" onclick="openProductModal()">+ Add Product</button>`;
@@ -516,14 +549,14 @@ PAGES.products = async () => {
 
 function renderProductsTable(prods) {
   const rows = prods.length===0
-    ? `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">No products yet</div>${ROLE!=='staff'?`<div class="empty-desc" style="margin-bottom:1rem">Start fast with a ready-made catalog</div><button class="btn btn-primary" onclick="openImportModal()">🇵🇭 Import Sari-Sari Starter Pack</button>`:''}</div></td></tr>`
+    ? `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">No products yet</div>${can('products_manage')?`<div class="empty-desc" style="margin-bottom:1rem">Start fast with a ready-made catalog</div><button class="btn btn-primary" onclick="openImportModal()">🇵🇭 Import Sari-Sari Starter Pack</button>`:''}</div></td></tr>`
     : prods.map(p=>{
         const stock = p.stock<=0
           ? `<span class="badge badge-red">Out of stock</span>`
           : p.stock<=p.low_stock_alert
             ? `<span class="badge badge-yellow">⚠️ ${p.stock}</span>`
             : `<span class="badge badge-green">${p.stock}</span>`;
-        const adminAct = ROLE==='admin'?`
+        const adminAct = can('products_manage')?`
           <button class="btn btn-outline btn-sm" onclick='openProductModal(${JSON.stringify(p)})'>Edit</button>
           <button class="btn btn-outline btn-sm" onclick='openAdjustStock("${p.id}","${escHtml(p.name)}")'>Adjust</button>
           <button class="btn btn-danger btn-sm" onclick='deleteProduct("${p.id}")'>Del</button>`:'';
@@ -776,7 +809,7 @@ PAGES.sales = async () => {
         <td><span class="badge ${statusMap[s.status]||'badge-gray'}">${s.status}</span></td>
         <td>
           <button class="btn btn-outline btn-sm" onclick='viewSale("${s.id}")'>View</button>
-          ${ROLE==='admin'&&s.status!=='voided'?`<button class="btn btn-danger btn-sm" onclick='voidSale("${s.id}")'>Void</button>`:''}
+          ${can('sales_void')&&s.status!=='voided'?`<button class="btn btn-danger btn-sm" onclick='voidSale("${s.id}")'>Void</button>`:''}
         </td>
       </tr>`).join('');
 
@@ -961,7 +994,7 @@ PAGES.users = async () => {
     <tr>
       <td><strong>${escHtml(u.username)}</strong></td>
       <td>${escHtml(u.full_name)}</td>
-      <td><span class="badge ${u.role==='admin'?'badge-blue':'badge-green'}">${u.role}</span></td>
+      <td><span class="badge ${u.role==='owner'?'badge-blue':u.role==='admin'?'badge-blue':'badge-green'}">${u.role}</span>${u.permissions?' <span class="badge badge-yellow">custom</span>':''}</td>
       <td><span class="badge ${u.active?'badge-green':'badge-red'}">${u.active?'Active':'Inactive'}</span></td>
       <td>
         <button class="btn btn-outline btn-sm" onclick='openUserModal(${JSON.stringify(u)})'>Edit</button>
@@ -977,8 +1010,27 @@ PAGES.users = async () => {
     </div>`);
 };
 
+const PERM_LIST = [
+  { key:'pos',             label:'🛒 Use Point of Sale',            desc:'Process sales and checkout' },
+  { key:'products_manage', label:'📦 Manage Products',              desc:'Add, edit, delete products & adjust stock' },
+  { key:'inventory_view',  label:'📋 View Stock Log',               desc:'See inventory movement history' },
+  { key:'sales_view_all',  label:'🧾 View All Sales',               desc:'See every sale, not just their own' },
+  { key:'sales_void',      label:'🗑 Void Sales',                   desc:'Cancel sales and restore stock' },
+  { key:'reports',         label:'📈 View Reports',                 desc:'Revenue, products & staff reports' },
+];
+
 function openUserModal(u=null) {
   const isEdit=!!u;
+  const perms = u?.permissions || { pos: true };
+  const permBoxes = PERM_LIST.map(p => `
+    <label style="display:flex;align-items:flex-start;gap:.6rem;padding:.6rem .75rem;border:1.5px solid #e2e8f0;border-radius:10px;cursor:pointer;margin-bottom:.5rem">
+      <input type="checkbox" class="perm-box" data-perm="${p.key}" ${perms[p.key]?'checked':''} style="width:auto;margin-top:.2rem">
+      <span>
+        <span style="font-size:.85rem;font-weight:600;display:block">${p.label}</span>
+        <span style="font-size:.75rem;color:#94a3b8">${p.desc}</span>
+      </span>
+    </label>`).join('');
+
   showModal(`
     <div class="modal-header"><div class="modal-title">${isEdit?'Edit':'Add'} User</div><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
@@ -989,11 +1041,19 @@ function openUserModal(u=null) {
       ${!isEdit?`<div class="form-group"><label>Email *</label><input type="email" id="uEmail" placeholder="user@email.com"></div>`:''}
       <div class="form-row">
         <div class="form-group"><label>Role *</label>
-          <select id="uRole"><option value="staff" ${u?.role==='staff'?'selected':''}>Staff</option><option value="admin" ${u?.role==='admin'?'selected':''}>Admin</option></select>
+          <select id="uRole" onchange="togglePermSection()"><option value="staff" ${u?.role==='staff'?'selected':''}>Staff</option><option value="admin" ${u?.role==='admin'?'selected':''}>Admin</option></select>
         </div>
         <div class="form-group"><label>${isEdit?'New Password (optional)':'Password *'}</label>
           <input type="password" id="uPassword" placeholder="${isEdit?'Leave blank to keep':'Min 8 chars'}">
         </div>
+      </div>
+      <div id="permSection" style="display:${(u?.role||'staff')==='staff'?'block':'none'}">
+        <div style="font-size:.82rem;font-weight:700;color:#374151;margin:.5rem 0 .6rem">🔐 Staff Permissions</div>
+        <p style="font-size:.75rem;color:#94a3b8;margin-bottom:.75rem">Choose exactly what this staff member can do. Admins automatically have full access.</p>
+        ${permBoxes}
+      </div>
+      <div id="adminNote" style="display:${(u?.role||'staff')==='admin'?'block':'none'};background:#eff6ff;border:1px solid #dbeafe;color:#1d4ed8;border-radius:8px;padding:.6rem 1rem;font-size:.8rem">
+        🛡️ Admins have full access to everything, including managing users and settings.
       </div>
     </div>
     <div class="modal-footer">
@@ -1004,11 +1064,28 @@ function openUserModal(u=null) {
     </div>`);
 }
 
+function togglePermSection() {
+  const role = document.getElementById('uRole').value;
+  document.getElementById('permSection').style.display = role === 'staff' ? 'block' : 'none';
+  document.getElementById('adminNote').style.display   = role === 'admin' ? 'block' : 'none';
+}
+
+function collectPerms() {
+  const perms = {};
+  document.querySelectorAll('.perm-box').forEach(cb => {
+    if (cb.checked) perms[cb.dataset.perm] = true;
+  });
+  return perms;
+}
+
 async function saveUser(id) {
-  const data={full_name:g('uName'),username:g('uUsername'),email:g('uEmail'),role:g('uRole'),password:g('uPassword')};
-  if(!data.full_name||data.username) {
-    if(!data.full_name||(!id&&(!data.email||!data.password))) return toast('Fill required fields','error');
-  }
+  const permissions = {};
+  document.querySelectorAll('.perm-cb').forEach(cb => { permissions[cb.dataset.perm] = cb.checked; });
+  const hasPermUi = document.querySelectorAll('.perm-cb').length > 0;
+  const data={full_name:g('uName'),username:g('uUsername'),email:g('uEmail'),
+    role:g('uRole'),password:g('uPassword'),
+    ...(hasPermUi ? { permissions } : {})};
+  if(!data.full_name||(!id&&(!data.email||!data.password))) return toast('Fill required fields','error');
   const r=id?await api('users','updateUser',{id,...data}):await api('users','addUser',data);
   if(r.success){toast(id?'Updated':'User added','success');closeModal();PAGES.users();}
   else toast(r.error,'error');

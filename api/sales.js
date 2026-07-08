@@ -1,4 +1,4 @@
-const { supabase, requireAuth, requireAdmin, setCors } = require('./_lib');
+const { supabase, requireAuth, requireAdmin, can, requirePerm, setCors } = require('./_lib');
 
 module.exports = async function handler(req, res) {
   setCors(res);
@@ -56,7 +56,7 @@ module.exports = async function handler(req, res) {
     if (action === 'getSales') {
       const { from, to } = req.body;
       let query = supabase.from('sales').select('*').eq('store_id', SID).order('created_at', { ascending: false });
-      if (profile.role === 'staff') query = query.eq('user_id', profile.id);
+      if (!can(profile, 'sales_view_all')) query = query.eq('user_id', profile.id);
       if (from) query = query.gte('created_at', from);
       if (to)   query = query.lte('created_at', to);
       const { data, error } = await query;
@@ -72,7 +72,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (action === 'voidSale') {
-      if (!requireAdmin(profile, res)) return;
+      if (!requirePerm(profile, 'sales_void', res)) return;
       const { data: sale } = await supabase.from('sales').select('*, sale_items(*)')
         .eq('id', req.body.saleId).eq('store_id', SID).single();
       if (!sale) return res.status(404).json({ success: false, error: 'Sale not found' });
@@ -91,7 +91,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (action === 'getReports') {
-      if (!requireAdmin(profile, res)) return;
+      if (!requirePerm(profile, 'reports', res)) return;
       const { type, from, to } = req.body;
       const fromD = from || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
       const toD   = to   || new Date().toISOString();

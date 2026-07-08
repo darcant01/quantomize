@@ -155,6 +155,7 @@
         localStorage.setItem('name',     data.name);
         localStorage.setItem('username', data.username);
         localStorage.setItem('userId',   data.userId);
+        localStorage.setItem('perms',    JSON.stringify(data.permissions || {}));
         window.location.href = '/app';
       } else {
         errorBox.textContent = data.error || 'Login failed.';

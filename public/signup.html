@@ -101,6 +101,7 @@ async function doSignup() {
       localStorage.setItem('username',  data.username);
       localStorage.setItem('userId',    data.userId);
       localStorage.setItem('storeName', data.storeName);
+      if (data.permissions) localStorage.setItem('perms', JSON.stringify(data.permissions));
       window.location.href = '/app';
     } else {
       errorBox.textContent = data.error || 'Signup failed.';

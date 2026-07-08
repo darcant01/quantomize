@@ -5,6 +5,31 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
+const ALL_TRUE = {
+  dashboard: true, pos: true, products_view: true, products_manage: true,
+  stock_log: true, sales_view_all: true, sales_void: true, reports: true,
+  users_manage: true, settings_manage: true
+};
+const ROLE_DEFAULTS = {
+  owner: { ...ALL_TRUE },
+  admin: { ...ALL_TRUE },
+  staff: {
+    dashboard: false, pos: true, products_view: true, products_manage: false,
+    stock_log: false, sales_view_all: false, sales_void: false, reports: false,
+    users_manage: false, settings_manage: false
+  }
+};
+function effectivePerms(profile) {
+  if (profile.role === 'owner') return { ...ALL_TRUE };
+  const base = { ...(ROLE_DEFAULTS[profile.role] || ROLE_DEFAULTS.staff) };
+  if (profile.permissions && typeof profile.permissions === 'object') {
+    for (const [k, v] of Object.entries(profile.permissions)) {
+      if (k in base) base[k] = !!v;
+    }
+  }
+  return base;
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -98,6 +123,7 @@ module.exports = async function handler(req, res) {
         storeId: profile.store_id,
         storeName: profile.stores?.name,
         plan: profile.stores?.plan,
+        permissions: profile.permissions || {},
       });
     }
 
@@ -107,7 +133,7 @@ module.exports = async function handler(req, res) {
       if (error || !user) return res.status(401).json({ success: false, error: 'Unauthorized' });
       const { data: profile } = await supabase
         .from('profiles').select('*, stores(name, plan)').eq('id', user.id).single();
-      return res.json({ success: true, user: { ...profile, email: user.email } });
+      return res.json({ success: true, user: { ...profile, email: user.email }, permissions: effectivePerms(profile) });
     }
 
     if (action === 'logout') return res.json({ success: true });

@@ -1,4 +1,4 @@
-const { supabase, requireAuth, requireAdmin, setCors } = require('./_lib');
+const { supabase, requireAuth, requireAdmin, requirePerm, can, setCors } = require('./_lib');
 
 module.exports = async function handler(req, res) {
   setCors(res);
@@ -12,7 +12,7 @@ module.exports = async function handler(req, res) {
 
   try {
     if (action === 'getUsers') {
-      if (!requireAdmin(profile, res)) return;
+      if (!requirePerm(profile, 'users_manage', res)) return;
       const { data, error } = await supabase.from('profiles').select('*')
         .eq('store_id', SID).order('created_at');
       if (error) throw error;
@@ -20,8 +20,8 @@ module.exports = async function handler(req, res) {
     }
 
     if (action === 'addUser') {
-      if (!requireAdmin(profile, res)) return;
-      const { email, password, username, full_name, role } = req.body;
+      if (!requirePerm(profile, 'users_manage', res)) return;
+      const { email, password, username, full_name, role, permissions } = req.body;
       if (!email || !password || !username || !full_name)
         return res.status(400).json({ success: false, error: 'Missing fields' });
       // Staff and admin only — never allow creating another owner
@@ -33,15 +33,15 @@ module.exports = async function handler(req, res) {
       if (authErr) return res.status(400).json({ success: false, error: authErr.message });
 
       const { error: profErr } = await supabase.from('profiles').insert({
-        id: authData.user.id, store_id: SID, username, full_name, role: safeRole
+        id: authData.user.id, store_id: SID, username, full_name, role: safeRole, permissions: permissions || { pos: true }
       });
       if (profErr) throw profErr;
       return res.json({ success: true, id: authData.user.id });
     }
 
     if (action === 'updateUser') {
-      if (!requireAdmin(profile, res)) return;
-      const { id, full_name, role, password } = req.body;
+      if (!requirePerm(profile, 'users_manage', res)) return;
+      const { id, full_name, role, password, permissions } = req.body;
       // Verify target belongs to the same store
       const { data: target } = await supabase.from('profiles').select('store_id, role')
         .eq('id', id).single();
@@ -51,14 +51,16 @@ module.exports = async function handler(req, res) {
         return res.status(403).json({ success: false, error: 'Cannot modify store owner' });
 
       const safeRole = role === 'admin' ? 'admin' : role === 'owner' ? target.role : 'staff';
-      const { error } = await supabase.from('profiles').update({ full_name, role: safeRole }).eq('id', id);
+      const updates = { full_name, role: safeRole };
+      if (permissions !== undefined) updates.permissions = permissions;
+      const { error } = await supabase.from('profiles').update(updates).eq('id', id);
       if (error) throw error;
       if (password) await supabase.auth.admin.updateUserById(id, { password });
       return res.json({ success: true });
     }
 
     if (action === 'deleteUser') {
-      if (!requireAdmin(profile, res)) return;
+      if (!requirePerm(profile, 'users_manage', res)) return;
       const { id } = req.body;
       const { data: target } = await supabase.from('profiles').select('store_id, role').eq('id', id).single();
       if (!target || target.store_id !== SID)

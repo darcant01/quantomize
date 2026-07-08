@@ -1,4 +1,4 @@
-const { supabase, requireAuth, requireAdmin, setCors } = require('./_lib');
+const { supabase, requireAuth, requireAdmin, requirePerm, can, setCors } = require('./_lib');
 
 module.exports = async function handler(req, res) {
   setCors(res);
@@ -23,7 +23,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (action === 'saveSettings') {
-      if (!requireAdmin(profile, res)) return;
+      if (!requirePerm(profile, 'settings_manage', res)) return;
       const { settings } = req.body;
       for (const [key, value] of Object.entries(settings)) {
         if (key.startsWith('_')) continue;

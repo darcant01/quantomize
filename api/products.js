@@ -1,4 +1,4 @@
-const { supabase, requireAuth, requireAdmin, setCors } = require('./_lib');
+const { supabase, requireAuth, requireAdmin, can, requirePerm, setCors } = require('./_lib');
 
 module.exports = async function handler(req, res) {
   setCors(res);
@@ -17,7 +17,7 @@ module.exports = async function handler(req, res) {
       return res.json({ success: true, categories: data });
     }
     if (action === 'addCategory') {
-      if (!requireAdmin(profile, res)) return;
+      if (!requirePerm(profile, 'products_manage', res)) return;
       const { name } = req.body;
       if (!name) return res.status(400).json({ success: false, error: 'Name required' });
       const { data, error } = await supabase.from('categories').insert({ store_id: SID, name }).select().single();
@@ -25,7 +25,7 @@ module.exports = async function handler(req, res) {
       return res.json({ success: true, id: data.id });
     }
     if (action === 'deleteCategory') {
-      if (!requireAdmin(profile, res)) return;
+      if (!requirePerm(profile, 'products_manage', res)) return;
       const { error } = await supabase.from('categories').delete().eq('id', req.body.id).eq('store_id', SID);
       if (error) throw error;
       return res.json({ success: true });
@@ -37,7 +37,7 @@ module.exports = async function handler(req, res) {
       return res.json({ success: true, products: data });
     }
     if (action === 'addProduct') {
-      if (!requireAdmin(profile, res)) return;
+      if (!requirePerm(profile, 'products_manage', res)) return;
       const { sku, name, category_id, cost_price, selling_price, stock, unit, low_stock_alert, barcode } = req.body;
       if (!name || !selling_price) return res.status(400).json({ success: false, error: 'Name and price required' });
       const { data, error } = await supabase.from('products').insert({
@@ -57,7 +57,7 @@ module.exports = async function handler(req, res) {
       return res.json({ success: true, id: data.id });
     }
     if (action === 'updateProduct') {
-      if (!requireAdmin(profile, res)) return;
+      if (!requirePerm(profile, 'products_manage', res)) return;
       const { id, sku, name, category_id, cost_price, selling_price, unit, low_stock_alert, barcode } = req.body;
       const { error } = await supabase.from('products').update({
         sku: sku || null, name, category_id: category_id || null,
@@ -68,13 +68,13 @@ module.exports = async function handler(req, res) {
       return res.json({ success: true });
     }
     if (action === 'deleteProduct') {
-      if (!requireAdmin(profile, res)) return;
+      if (!requirePerm(profile, 'products_manage', res)) return;
       const { error } = await supabase.from('products').update({ active: false }).eq('id', req.body.id).eq('store_id', SID);
       if (error) throw error;
       return res.json({ success: true });
     }
     if (action === 'adjustStock') {
-      if (!requireAdmin(profile, res)) return;
+      if (!requirePerm(profile, 'products_manage', res)) return;
       const { productId, adjustment, reason } = req.body;
       if (!productId || adjustment === undefined)
         return res.status(400).json({ success: false, error: 'Missing fields' });
@@ -93,7 +93,7 @@ module.exports = async function handler(req, res) {
       return res.json({ success: true, newStock });
     }
     if (action === 'getInventoryLog') {
-      if (!requireAdmin(profile, res)) return;
+      if (!requirePerm(profile, 'inventory_view', res)) return;
       const { productId, from, to } = req.body;
       let query = supabase.from('inventory_log').select('*').eq('store_id', SID)
         .order('created_at', { ascending: false }).limit(500);
@@ -113,7 +113,7 @@ module.exports = async function handler(req, res) {
       }))});
     }
     if (action === 'importTemplate') {
-      if (!requireAdmin(profile, res)) return;
+      if (!requirePerm(profile, 'products_manage', res)) return;
       const { templateId, defaultStock } = req.body;
       const { templates } = require('./_templates');
       const template = templates.find(t => t.id === templateId);
