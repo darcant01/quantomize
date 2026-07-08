@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quantomize — Developer Hub</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;font-size:14px;min-height:100vh}
+.topbar{background:#1e293b;padding:.9rem 1.5rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #334155;position:sticky;top:0;z-index:50}
+.topbar-title{font-weight:700;display:flex;align-items:center;gap:.5rem;font-size:1rem}
+.dev-badge{background:#7c3aed;color:white;font-size:.65rem;font-weight:700;padding:.2rem .5rem;border-radius:999px;text-transform:uppercase;letter-spacing:.05em}
+.container{max-width:1200px;margin:0 auto;padding:1.5rem}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem;margin-bottom:1.5rem}
+.stat-card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:1.1rem}
+.stat-label{font-size:.7rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em}
+.stat-value{font-size:1.6rem;font-weight:700;color:#f1f5f9;margin-top:.2rem}
+.stat-sub{font-size:.72rem;color:#64748b;margin-top:.15rem}
+.tabs{display:flex;gap:.5rem;margin-bottom:1.25rem;flex-wrap:wrap}
+.tab{padding:.5rem 1.1rem;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;background:#1e293b;border:1px solid #334155;color:#94a3b8;transition:all .15s}
+.tab:hover{color:#e2e8f0}
+.tab.active{background:#7c3aed;border-color:#7c3aed;color:white}
+.card{background:#1e293b;border:1px solid #334155;border-radius:12px;overflow:hidden;margin-bottom:1rem}
+.card-header{padding:.9rem 1.25rem;border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem}
+.card-title{font-weight:700;font-size:.9rem}
+table{width:100%;border-collapse:collapse;font-size:.83rem}
+thead th{background:#0f172a;padding:.6rem 1rem;text-align:left;font-size:.7rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+tbody td{padding:.7rem 1rem;border-bottom:1px solid #273449;color:#cbd5e1;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#26334a}
+.badge{padding:.18rem .55rem;border-radius:999px;font-size:.68rem;font-weight:600;display:inline-block}
+.badge-green{background:#14532d;color:#86efac}
+.badge-red{background:#7f1d1d;color:#fca5a5}
+.badge-purple{background:#4c1d95;color:#c4b5fd}
+.badge-blue{background:#1e3a8a;color:#93c5fd}
+.badge-gray{background:#334155;color:#94a3b8}
+.badge-yellow{background:#713f12;color:#fde047}
+.btn{padding:.4rem .8rem;border-radius:7px;font-size:.75rem;font-weight:600;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem}
+.btn-purple{background:#7c3aed;color:white}
+.btn-purple:hover{background:#6d28d9}
+.btn-outline{background:transparent;color:#94a3b8;border:1px solid #475569}
+.btn-outline:hover{color:#e2e8f0;border-color:#94a3b8}
+.btn-danger{background:#991b1b;color:#fecaca}
+.btn-danger:hover{background:#b91c1c}
+.btn-green{background:#166534;color:#bbf7d0}
+select,input{background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:.45rem .7rem;border-radius:7px;font-size:.8rem;outline:none}
+select:focus,input:focus{border-color:#7c3aed}
+.gap-sm{display:flex;gap:.4rem;flex-wrap:wrap}
+.loading{text-align:center;padding:2rem;color:#64748b}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid #334155;border-top-color:#7c3aed;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#1e293b;border:1px solid #475569;color:#e2e8f0;padding:.75rem 1.25rem;border-radius:10px;font-size:.85rem;z-index:9999;transform:translateY(100px);opacity:0;transition:all .3s}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.success{border-color:#16a34a;color:#86efac}
+#toast.error{border-color:#dc2626;color:#fca5a5}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.open{display:flex}
+.modal{background:#1e293b;border:1px solid #475569;border-radius:14px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.modal-header{padding:1.1rem 1.4rem;border-bottom:1px solid #334155;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.modal-body{padding:1.4rem}
+.modal-footer{padding:1rem 1.4rem;border-top:1px solid #334155;display:flex;justify-content:flex-end;gap:.5rem}
+.form-group{margin-bottom:.9rem}
+.form-group label{display:block;font-size:.75rem;font-weight:600;color:#94a3b8;margin-bottom:.3rem}
+.form-group input,.form-group select{width:100%}
+.modal-close{cursor:pointer;background:none;border:none;color:#64748b;font-size:1.1rem}
+.denied{text-align:center;padding:4rem 1rem}
+.denied h2{color:#f1f5f9;margin-bottom:.5rem}
+.denied p{color:#64748b}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">⚡ Quantomize <span class="dev-badge">Developer Hub</span></div>
+  <div class="gap-sm">
+    <button class="btn btn-outline" onclick="location.href='/app'">← Back to App</button>
+    <button class="btn btn-outline" onclick="localStorage.clear();location.href='/login'">Sign Out</button>
+  </div>
+</div>
+
+<div class="container" id="main">
+  <div class="loading"><div class="spinner"></div></div>
+</div>
+
+<div id="toast"></div>
+<div id="modalContainer"></div>
+
+<script>
+const TOKEN = localStorage.getItem('token') || '';
+if (!TOKEN) location.href = '/login';
+
+let STORES = [], USERS = [], currentTab = 'stores';
+
+async function api(action, data = {}) {
+  try {
+    const res = await fetch('/api/dev', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
+      body: JSON.stringify({ action, ...data })
+    });
+    return await res.json();
+  } catch(e) { return { success: false, error: 'Network error' }; }
+}
+
+let toastTimer;
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 3000);
+}
+function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function fmtDate(d){return d?new Date(d).toLocaleDateString('en',{month:'short',day:'numeric',year:'numeric'}):'—'}
+function fmtMoney(n){return '₱'+Number(n).toLocaleString('en',{minimumFractionDigits:2})}
+function g(id){const el=document.getElementById(id);return el?el.value.trim():''}
+function showModal(html){document.getElementById('modalContainer').innerHTML=`<div class="modal-overlay open" onclick="if(event.target.classList.contains('modal-overlay'))closeModal()"><div class="modal">${html}</div></div>`}
+function closeModal(){document.getElementById('modalContainer').innerHTML=''}
+
+async function init() {
+  const statsR = await api('getStats');
+  if (!statsR.success) {
+    document.getElementById('main').innerHTML = `
+      <div class="denied">
+        <h2>🔒 Access Denied</h2>
+        <p>${esc(statsR.error || 'This area is for platform developers only.')}</p>
+        <br><button class="btn btn-purple" onclick="location.href='/app'">Go to App</button>
+      </div>`;
+    return;
+  }
+  renderLayout(statsR.stats);
+  loadTab('stores');
+}
+
+function renderLayout(s) {
+  document.getElementById('main').innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Total Stores</div><div class="stat-value">${s.storeCount}</div>
+        <div class="stat-sub">${s.plans.free||0} free · ${s.plans.pro||0} pro · ${s.plans.enterprise||0} ent</div></div>
+      <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value">${s.userCount}</div></div>
+      <div class="stat-card"><div class="stat-label">Total Sales</div><div class="stat-value">${s.saleCount}</div></div>
+      <div class="stat-card"><div class="stat-label">Platform GMV</div><div class="stat-value">${fmtMoney(s.totalRevenue)}</div>
+        <div class="stat-sub">All-time, all stores</div></div>
+    </div>
+    <div class="tabs">
+      <div class="tab" id="tab-stores"  onclick="loadTab('stores')">🏢 Stores</div>
+      <div class="tab" id="tab-users"   onclick="loadTab('users')">👥 All Users</div>
+      <div class="tab" id="tab-sales"   onclick="loadTab('sales')">🧾 Recent Sales</div>
+    </div>
+    <div id="tabContent"><div class="loading"><div class="spinner"></div></div></div>`;
+}
+
+function loadTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+tab)?.classList.add('active');
+  document.getElementById('tabContent').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  if (tab==='stores') loadStores();
+  if (tab==='users')  loadUsers();
+  if (tab==='sales')  loadSales();
+}
+
+// ── Stores tab ────────────────────────────────────────────
+async function loadStores() {
+  const r = await api('getStores');
+  STORES = r.stores || [];
+  const planBadge = { free:'badge-gray', pro:'badge-purple', enterprise:'badge-blue' };
+  const rows = STORES.map(s => {
+    const trialLeft = s.trial_ends ? Math.ceil((new Date(s.trial_ends) - Date.now())/86400000) : null;
+    return `<tr>
+      <td><strong>${esc(s.name)}</strong><br><span style="font-size:.7rem;color:#64748b">${esc(s.owner?.full_name||'no owner')}</span></td>
+      <td><span class="badge ${planBadge[s.plan]||'badge-gray'}">${s.plan}</span></td>
+      <td>${s.plan==='free' && trialLeft !== null
+            ? (trialLeft > 0 ? `<span class="badge badge-yellow">${trialLeft}d left</span>` : `<span class="badge badge-red">Expired</span>`)
+            : '—'}</td>
+      <td>${s.userCount}</td>
+      <td>${s.productCount}</td>
+      <td>${s.saleCount}</td>
+      <td><span class="badge ${s.active?'badge-green':'badge-red'}">${s.active?'Active':'Suspended'}</span></td>
+      <td>${fmtDate(s.created_at)}</td>
+      <td><div class="gap-sm">
+        <button class="btn btn-outline" onclick='editStore("${s.id}")'>Edit</button>
+        <button class="btn ${s.active?'btn-danger':'btn-green'}" onclick='toggleStore("${s.id}",${!s.active})'>${s.active?'Suspend':'Activate'}</button>
+        <button class="btn btn-danger" onclick='deleteStore("${s.id}","${esc(s.name)}")'>🗑</button>
+      </div></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="9" style="text-align:center;padding:2rem;color:#64748b">No stores yet</td></tr>`;
+
+  document.getElementById('tabContent').innerHTML = `
+    <div class="card">
+      <div class="card-header"><div class="card-title">All Stores (${STORES.length})</div></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Store</th><th>Plan</th><th>Trial</th><th>Users</th><th>Products</th><th>Sales</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function editStore(id) {
+  const s = STORES.find(x=>x.id===id);
+  showModal(`
+    <div class="modal-header">Edit Store — ${esc(s.name)}<button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Store Name</label><input id="esName" value="${esc(s.name)}"></div>
+      <div class="form-group"><label>Plan</label>
+        <select id="esPlan">
+          <option value="free" ${s.plan==='free'?'selected':''}>Free</option>
+          <option value="pro" ${s.plan==='pro'?'selected':''}>Pro</option>
+          <option value="enterprise" ${s.plan==='enterprise'?'selected':''}>Enterprise</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Trial Ends</label><input type="date" id="esTrial" value="${s.trial_ends ? s.trial_ends.split('T')[0] : ''}"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-purple" onclick='saveStore("${id}")'>Save</button>
+    </div>`);
+}
+
+async function saveStore(id) {
+  const r = await api('updateStore', {
+    id, name: g('esName'), plan: g('esPlan'),
+    trial_ends: g('esTrial') ? new Date(g('esTrial')).toISOString() : null
+  });
+  if (r.success) { toast('Store updated','success'); closeModal(); loadStores(); }
+  else toast(r.error,'error');
+}
+
+async function toggleStore(id, active) {
+  const r = await api('updateStore', { id, active });
+  if (r.success) { toast(active?'Store activated':'Store suspended','success'); loadStores(); }
+  else toast(r.error,'error');
+}
+
+async function deleteStore(id, name) {
+  if (!confirm(`⚠️ DELETE "${name}" permanently?\n\nThis removes ALL its data: products, sales, users. Cannot be undone.`)) return;
+  if (!confirm(`Really sure? Type of action: PERMANENT DELETE of "${name}"`)) return;
+  const r = await api('deleteStore', { id });
+  if (r.success) { toast('Store deleted','success'); loadStores(); }
+  else toast(r.error,'error');
+}
+
+// ── Users tab ─────────────────────────────────────────────
+async function loadUsers() {
+  const r = await api('getUsers', {});
+  USERS = r.users || [];
+  const roleBadge = { owner:'badge-purple', admin:'badge-blue', staff:'badge-gray' };
+  const rows = USERS.map(u => `
+    <tr>
+      <td><strong>${esc(u.full_name)}</strong><br><span style="font-size:.7rem;color:#64748b">${esc(u.email)}</span></td>
+      <td>${esc(u.username)}</td>
+      <td>${esc(u.stores?.name||'—')}</td>
+      <td><span class="badge ${roleBadge[u.role]||'badge-gray'}">${u.role}</span>${u.superadmin?' <span class="badge badge-purple">⚡ DEV</span>':''}</td>
+      <td><span class="badge ${u.active?'badge-green':'badge-red'}">${u.active?'Active':'Disabled'}</span></td>
+      <td>${fmtDate(u.created_at)}</td>
+      <td><div class="gap-sm">
+        <button class="btn btn-outline" onclick='resetPwd("${u.id}","${esc(u.full_name)}")'>Reset PW</button>
+        <button class="btn ${u.active?'btn-danger':'btn-green'}" onclick='toggleUser("${u.id}",${!u.active})'>${u.active?'Disable':'Enable'}</button>
+      </div></td>
+    </tr>`).join('') || `<tr><td colspan="7" style="text-align:center;padding:2rem;color:#64748b">No users</td></tr>`;
+
+  document.getElementById('tabContent').innerHTML = `
+    <div class="card">
+      <div class="card-header"><div class="card-title">All Platform Users (${USERS.length})</div></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>User</th><th>Username</th><th>Store</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function resetPwd(id, name) {
+  showModal(`
+    <div class="modal-header">Reset Password — ${esc(name)}<button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>New Password (min 8 chars)</label><input type="text" id="newPwd" placeholder="Enter new password"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-purple" onclick='submitPwd("${id}")'>Reset</button>
+    </div>`);
+}
+
+async function submitPwd(id) {
+  const password = g('newPwd');
+  if (password.length < 8) return toast('Min 8 characters','error');
+  const r = await api('resetPassword', { id, password });
+  if (r.success) { toast('Password reset','success'); closeModal(); }
+  else toast(r.error,'error');
+}
+
+async function toggleUser(id, active) {
+  const r = await api('toggleUser', { id, active });
+  if (r.success) { toast(active?'User enabled':'User disabled','success'); loadUsers(); }
+  else toast(r.error,'error');
+}
+
+// ── Sales tab ─────────────────────────────────────────────
+async function loadSales() {
+  const r = await api('getRecentSales');
+  const sales = r.sales || [];
+  const rows = sales.map(s => `
+    <tr>
+      <td><strong>${esc(s.receipt_no)}</strong></td>
+      <td>${esc(s.stores?.name||'—')}</td>
+      <td>${esc(s.username||'—')}</td>
+      <td>${fmtMoney(s.total)}</td>
+      <td><span class="badge ${s.status==='voided'?'badge-red':'badge-green'}">${s.status}</span></td>
+      <td>${new Date(s.created_at).toLocaleString('en',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
+    </tr>`).join('') || `<tr><td colspan="6" style="text-align:center;padding:2rem;color:#64748b">No sales yet</td></tr>`;
+
+  document.getElementById('tabContent').innerHTML = `
+    <div class="card">
+      <div class="card-header"><div class="card-title">Recent Sales — All Stores (last 50)</div></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Receipt</th><th>Store</th><th>Staff</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+init();
+</script>
+</body>
+</html>

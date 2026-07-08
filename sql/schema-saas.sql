@@ -168,3 +168,6 @@ create policy "svc inv_log"    on inventory_log for all using (true);
 create policy "svc settings"   on settings      for all using (true);
 
 select 'Quantomize SaaS schema created successfully!' as status;
+
+-- ── Superadmin column (developer access) ─────────────────────
+alter table profiles add column if not exists superadmin boolean not null default false;
