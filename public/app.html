@@ -487,7 +487,8 @@ async function checkout() {
 PAGES.products = async () => {
   if (ROLE==='admin') {
     document.getElementById('topbarActions').innerHTML =
-      `<button class="btn btn-primary" onclick="openProductModal()">+ Add Product</button>`;
+      `<button class="btn btn-outline" onclick="openImportModal()">📥 Import Starter Pack</button>
+       <button class="btn btn-primary" onclick="openProductModal()">+ Add Product</button>`;
   }
   setContent(`<div class="loading"><div class="spinner"></div></div>`);
   const [pr,cr] = await Promise.all([api('products','getProducts'),api('products','getCategories')]);
@@ -497,7 +498,7 @@ PAGES.products = async () => {
 
 function renderProductsTable(prods) {
   const rows = prods.length===0
-    ? `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">No products yet</div></div></td></tr>`
+    ? `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">No products yet</div>${ROLE!=='staff'?`<div class="empty-desc" style="margin-bottom:1rem">Start fast with a ready-made catalog</div><button class="btn btn-primary" onclick="openImportModal()">🇵🇭 Import Sari-Sari Starter Pack</button>`:''}</div></td></tr>`
     : prods.map(p=>{
         const stock = p.stock<=0
           ? `<span class="badge badge-red">Out of stock</span>`
@@ -541,6 +542,59 @@ function renderProductsTable(prods) {
 function filterProductsList(q) {
   const f = PRODUCTS.filter(p=>p.name.toLowerCase().includes(q.toLowerCase())||(p.sku||'').toLowerCase().includes(q.toLowerCase()));
   renderProductsTable(f);
+}
+
+async function openImportModal() {
+  const r = await api('products', 'getTemplates');
+  if (!r.success) return toast(r.error, 'error');
+  const packs = r.templates.map(t => `
+    <div style="border:1.5px solid #e2e8f0;border-radius:12px;padding:1.25rem;margin-bottom:.75rem">
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem">
+        <span style="font-size:1.5rem">🇵🇭</span>
+        <strong style="font-size:.95rem">${escHtml(t.name)}</strong>
+      </div>
+      <p style="font-size:.82rem;color:#64748b;margin-bottom:.75rem">${escHtml(t.description)}</p>
+      <div style="display:flex;gap:.75rem;margin-bottom:1rem">
+        <span class="badge badge-blue">${t.categoryCount} categories</span>
+        <span class="badge badge-green">${t.productCount} products</span>
+      </div>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <label style="font-size:.78rem;font-weight:600;color:#64748b;white-space:nowrap">Starting stock per item:</label>
+        <input type="number" id="importStock_${t.id}" value="20" min="0" style="width:80px">
+        <button class="btn btn-primary" onclick="runImport('${t.id}')" id="importBtn_${t.id}">Import</button>
+      </div>
+    </div>`).join('');
+
+  showModal(`
+    <div class="modal-header">
+      <div class="modal-title">📥 Import Starter Pack</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.82rem;color:#64748b;margin-bottom:1rem">
+        Instantly fill your store with ready-made products including realistic prices.
+        Products you already have (same name) are skipped, and you can edit prices anytime after import.
+      </p>
+      ${packs}
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal()">Cancel</button></div>`);
+}
+
+async function runImport(templateId) {
+  const btn = document.getElementById('importBtn_' + templateId);
+  const stock = document.getElementById('importStock_' + templateId)?.value || 20;
+  btn.disabled = true;
+  btn.textContent = 'Importing…';
+  const r = await api('products', 'importTemplate', { templateId, defaultStock: stock });
+  if (r.success) {
+    toast(`✅ Imported ${r.imported} products${r.skipped ? ` (${r.skipped} skipped — already exist)` : ''}`, 'success');
+    closeModal();
+    PAGES.products();
+  } else {
+    toast(r.error, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Import';
+  }
 }
 
 function openProductModal(p=null) {

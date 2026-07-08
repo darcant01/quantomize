@@ -104,6 +104,57 @@ module.exports = async function handler(req, res) {
       if (error) throw error;
       return res.json({ success: true, logs: data });
     }
+    if (action === 'getTemplates') {
+      const { templates } = require('./_templates');
+      return res.json({ success: true, templates: templates.map(t => ({
+        id: t.id, name: t.name, description: t.description,
+        categoryCount: t.categories.length,
+        productCount: t.categories.reduce((s, c) => s + c.products.length, 0)
+      }))});
+    }
+    if (action === 'importTemplate') {
+      if (!requireAdmin(profile, res)) return;
+      const { templateId, defaultStock } = req.body;
+      const { templates } = require('./_templates');
+      const template = templates.find(t => t.id === templateId);
+      if (!template) return res.status(404).json({ success: false, error: 'Template not found' });
+
+      let imported = 0, skipped = 0;
+      for (const cat of template.categories) {
+        // Find or create category
+        let { data: existing } = await supabase.from('categories')
+          .select('id').eq('store_id', SID).eq('name', cat.name).maybeSingle();
+        let catId = existing?.id;
+        if (!catId) {
+          const { data: newCat, error: catErr } = await supabase.from('categories')
+            .insert({ store_id: SID, name: cat.name }).select().single();
+          if (catErr) continue;
+          catId = newCat.id;
+        }
+        for (const p of cat.products) {
+          // Skip if a product with the same name already exists
+          const { data: dupe } = await supabase.from('products')
+            .select('id').eq('store_id', SID).eq('name', p.name).maybeSingle();
+          if (dupe) { skipped++; continue; }
+          const stock = Number(defaultStock) || 20;
+          const { data: prod, error: prodErr } = await supabase.from('products').insert({
+            store_id: SID, name: p.name, category_id: catId,
+            cost_price: p.cost, selling_price: p.price,
+            stock, unit: p.unit || 'pcs', low_stock_alert: 5
+          }).select().single();
+          if (prodErr) { skipped++; continue; }
+          imported++;
+          if (stock > 0) {
+            await supabase.from('inventory_log').insert({
+              store_id: SID, product_id: prod.id, product_name: p.name,
+              type: 'INITIAL', qty: stock, prev_stock: 0,
+              reason: 'Starter pack import', created_by: profile.username
+            });
+          }
+        }
+      }
+      return res.json({ success: true, imported, skipped });
+    }
     return res.status(400).json({ success: false, error: 'Unknown action' });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
