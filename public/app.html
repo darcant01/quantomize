@@ -139,7 +139,7 @@ input:focus,select:focus,textarea:focus{border-color:#2563eb;box-shadow:0 0 0 3p
 <div class="app-shell">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <div class="sidebar-logo"><span>🏪</span><span id="sidebarStoreName">Store</span></div>
+      <div class="sidebar-logo"><span id="sidebarLogo">🏪</span><span id="sidebarStoreName">Store</span></div>
       <div class="store-name-small">Sales & Inventory Management</div>
     </div>
     <div class="sidebar-user">
@@ -263,12 +263,19 @@ async function init() {
     CURRENCY = SETTINGS.currency_symbol || '₱';
     document.getElementById('sidebarStoreName').textContent = SETTINGS.store_name || 'Store';
     document.title = (SETTINGS.store_name || 'Quantomize') + ' — Dashboard';
+    applySidebarLogo(SETTINGS.store_logo);
   }
   const firstPage = MENU.find(m => m.id && hasPerm(m.perm));
   navigate(firstPage ? firstPage.id : 'sales');
 }
 
 function fmt(n) { return CURRENCY + Number(n).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function applySidebarLogo(dataUrl) {
+  const el = document.getElementById('sidebarLogo');
+  if (!el) return;
+  if (dataUrl) el.innerHTML = `<img src="${dataUrl}" style="width:26px;height:26px;border-radius:6px;object-fit:contain;background:#fff;padding:1px">`;
+  else el.textContent = '🏪';
+}
 function fmtDate(d) { return d ? new Date(d).toLocaleDateString('en',{month:'short',day:'numeric',year:'numeric'}) : '—'; }
 function fmtDateTime(d) { return d ? new Date(d).toLocaleString('en',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'; }
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -1097,6 +1104,7 @@ function printReceipt() {
   const storeAddr  = SETTINGS.store_address || '';
   const storePhone = SETTINGS.store_phone   || '';
   const storeTin   = SETTINGS.tin_number    || '';
+  const storeLogo  = SETTINGS.store_logo    || '';
 
   const itemRows = (s.sale_items||[]).map(i => `
     <tr>
@@ -1122,6 +1130,7 @@ function printReceipt() {
   .small { font-size: 10px; }
 </style></head>
 <body onload="window.print(); setTimeout(()=>window.close(), 300)">
+  ${storeLogo ? `<div class="center" style="margin-bottom:4px"><img src="${storeLogo}" style="max-width:120px;max-height:60px;object-fit:contain"></div>` : ''}
   <div class="center bold" style="font-size:15px">${escHtml(storeName)}</div>
   ${storeAddr ? `<div class="center small">${escHtml(storeAddr)}</div>` : ''}
   ${storePhone ? `<div class="center small">Tel: ${escHtml(storePhone)}</div>` : ''}
@@ -1343,6 +1352,22 @@ PAGES.settings = async () => {
   const s = r.settings;
   setContent(`
     <div class="table-card" style="max-width:600px">
+      <div class="table-header"><div class="table-title">🖼️ Store Logo</div></div>
+      <div class="modal-body">
+        <div style="display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap">
+          <div id="logoPreview" style="width:90px;height:90px;border-radius:14px;border:2px dashed #cbd5e1;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#f8fafc;flex-shrink:0">
+            ${s.store_logo ? `<img src="${s.store_logo}" style="width:100%;height:100%;object-fit:contain">` : '<span style="font-size:2rem">🏪</span>'}
+          </div>
+          <div style="flex:1;min-width:200px">
+            <input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="handleLogoUpload(event)">
+            <button class="btn btn-outline" onclick="document.getElementById('logoFile').click()">📤 Upload Logo</button>
+            ${s.store_logo ? '<button class="btn btn-outline" onclick="removeLogo()" style="margin-left:.5rem">🗑 Remove</button>' : ''}
+            <p style="font-size:.75rem;color:#94a3b8;margin-top:.5rem">PNG, JPG, or WebP · under 500KB · square works best.<br>Appears in the app sidebar and on printed receipts.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="table-card" style="max-width:600px">
       <div class="table-header"><div class="table-title">🏪 Business Information</div></div>
       <div class="modal-body">
         <div class="form-group"><label>Store Name</label><input type="text" id="sName" value="${escHtml(s.store_name||'')}"></div>
@@ -1380,18 +1405,59 @@ PAGES.settings = async () => {
   document.getElementById('sCounter')?.addEventListener('input', upd);
 };
 
+
+let PENDING_LOGO = undefined; // undefined = unchanged, '' = removed, string = new data URL
+
+function handleLogoUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 500 * 1024) { toast('Image too large — use one under 500KB', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    // Downscale to max 300px to keep it small
+    const img = new Image();
+    img.onload = () => {
+      const max = 300;
+      let { width, height } = img;
+      if (width > max || height > max) {
+        if (width > height) { height = height * max / width; width = max; }
+        else { width = width * max / height; height = max; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL('image/png');
+      PENDING_LOGO = dataUrl;
+      const prev = document.getElementById('logoPreview');
+      if (prev) prev.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:contain">`;
+      toast('Logo ready — click Save to apply', 'success');
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeLogo() {
+  PENDING_LOGO = '';
+  const prev = document.getElementById('logoPreview');
+  if (prev) prev.innerHTML = '<span style="font-size:2rem">🏪</span>';
+  toast('Logo will be removed — click Save to apply', 'success');
+}
+
 async function saveSettings() {
   const counter = parseInt(g('sCounter'));
   if (!counter || counter < 1) return toast('Next receipt number must be 1 or higher', 'error');
   const settings={store_name:g('sName'),store_address:g('sAddr'),store_phone:g('sPhone'),
     tin_number:g('sTin'),currency_symbol:g('sCur'),tax_rate:g('sTax'),
     receipt_prefix:g('sPrefix')||'RCP',receipt_counter:String(counter)};
+  if (PENDING_LOGO !== undefined) settings.store_logo = PENDING_LOGO;
   const r=await api('settings','saveSettings',{settings});
   if(r.success){
     toast('Settings saved','success');
     CURRENCY=settings.currency_symbol||'₱';
     SETTINGS={...SETTINGS,...settings};
     document.getElementById('sidebarStoreName').textContent = settings.store_name || 'Store';
+    if (PENDING_LOGO !== undefined) { applySidebarLogo(PENDING_LOGO); PENDING_LOGO = undefined; }
   }
   else toast(r.error,'error');
 }

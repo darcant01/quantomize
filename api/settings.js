@@ -25,6 +25,10 @@ module.exports = async function handler(req, res) {
     if (action === 'saveSettings') {
       if (!requirePerm(profile, 'settings_manage', res)) return;
       const { settings } = req.body;
+      // Guard: logo data URL must be under ~500KB
+      if (settings.store_logo && settings.store_logo.length > 700000) {
+        return res.status(400).json({ success: false, error: 'Logo image is too large. Please use an image under 500KB.' });
+      }
       for (const [key, value] of Object.entries(settings)) {
         if (key.startsWith('_')) continue;
         await supabase.from('settings').upsert(
