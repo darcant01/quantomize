@@ -308,7 +308,9 @@ function renderNav() {
 }
 
 
+let currentPage = '';
 function navigate(page) {
+  currentPage = page;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   const navEl = document.getElementById('nav-' + page);
   if (navEl) navEl.classList.add('active');
@@ -388,11 +390,92 @@ PAGES.pos = async () => {
   renderPOS();
 };
 
+
+// ── Barcode Scanner Support ──────────────────────────────
+// Scanners "type" the code very fast and end with Enter.
+// This listener catches scans anywhere on the POS page without
+// needing to click a field first.
+let scanBuffer = '';
+let scanTimer = null;
+let lastKeyTime = 0;
+
+document.addEventListener('keydown', (e) => {
+  // Only active on the POS page
+  if (typeof currentPage !== 'undefined' && currentPage !== 'pos') return;
+  // Ignore if user is typing in an input (except the hidden scan flow)
+  const tag = document.activeElement?.tagName;
+  const isTyping = tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA';
+
+  const now = Date.now();
+  const gap = now - lastKeyTime;
+  lastKeyTime = now;
+
+  if (e.key === 'Enter') {
+    // Fast sequence + Enter = scanner
+    if (scanBuffer.length >= 4) {
+      const code = scanBuffer;
+      scanBuffer = '';
+      clearTimeout(scanTimer);
+      if (!isTyping || document.activeElement?.id === 'posScanInput') {
+        e.preventDefault();
+        handleBarcodeScan(code);
+      }
+      return;
+    }
+    scanBuffer = '';
+    return;
+  }
+
+  if (e.key.length === 1) {
+    // Human typing has gaps > 50ms; scanners are < 30ms between chars
+    if (gap > 100) scanBuffer = '';
+    scanBuffer += e.key;
+    clearTimeout(scanTimer);
+    scanTimer = setTimeout(() => { scanBuffer = ''; }, 300);
+  }
+});
+
+function handleBarcodeScan(code) {
+  const product = PRODUCTS.find(p =>
+    (p.barcode && p.barcode === code) ||
+    (p.sku && p.sku === code)
+  );
+  if (!product) {
+    toast(`❌ No product with barcode: ${code}`, 'error');
+    playBeep(false);
+    return;
+  }
+  if (product.stock <= 0) {
+    toast(`⚠️ ${product.name} is out of stock`, 'error');
+    playBeep(false);
+    return;
+  }
+  addToCart(product.id);
+  toast(`✅ ${product.name} added`, 'success');
+  playBeep(true);
+}
+
+function playBeep(ok) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = ok ? 1200 : 300;
+    gain.gain.value = 0.1;
+    osc.start();
+    osc.stop(ctx.currentTime + (ok ? 0.08 : 0.25));
+  } catch {}
+}
+
 function renderPOS() {
   document.getElementById('topbarActions').innerHTML = `
+    <span style="font-size:.72rem;color:#16a34a;font-weight:600;display:inline-flex;align-items:center;gap:.3rem;background:#dcfce7;padding:.3rem .6rem;border-radius:999px">
+      📷 Scanner Ready
+    </span>
     <div class="search-wrap">
       <span class="search-icon">🔍</span>
-      <input type="text" placeholder="Search products…" oninput="filterPOS(this.value)" style="padding-left:2.2rem;width:200px">
+      <input type="text" placeholder="Search or scan…" oninput="filterPOS(this.value)" style="padding-left:2.2rem;width:200px">
     </div>
     <select onchange="filterPOSCat(this.value)" style="width:auto">
       <option value="">All categories</option>
