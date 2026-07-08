@@ -468,11 +468,150 @@ function playBeep(ok) {
   } catch {}
 }
 
+
+
+// Scan a barcode directly into a form field (used in product editor)
+async function scanIntoField(fieldId) {
+  const targetId = fieldId;
+  showModal(`
+    <div class="modal-header">
+      <div class="modal-title">📷 Scan Barcode</div>
+      <button class="modal-close" onclick="closeCameraScanner()">✕</button>
+    </div>
+    <div class="modal-body" style="text-align:center">
+      <div id="scanStatus" style="font-size:.85rem;color:#64748b;margin-bottom:.75rem">Loading camera…</div>
+      <div style="position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:4/3">
+        <video id="scanVideo" style="width:100%;height:100%;object-fit:cover" muted playsinline></video>
+        <div style="position:absolute;left:8%;right:8%;top:50%;height:2px;background:#ef4444;transform:translateY(-50%)"></div>
+      </div>
+      <p style="font-size:.78rem;color:#94a3b8;margin-top:.75rem">Point at the barcode to capture it.</p>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeCameraScanner()">Cancel</button></div>`);
+
+  const status = document.getElementById('scanStatus');
+  try {
+    if (!window.ZXingBrowser) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/zxing-js.browser/0.1.5/zxing-browser.min.js');
+  } catch {
+    try { await loadScript('https://unpkg.com/@zxing/browser@0.1.5/umd/zxing-browser.min.js'); }
+    catch { status.textContent = '❌ Could not load scanner.'; return; }
+  }
+  try {
+    const { BrowserMultiFormatReader } = window.ZXingBrowser;
+    const reader = new BrowserMultiFormatReader();
+    scannerActive = true;
+    status.textContent = '🔍 Scanning…';
+    scannerControls = await reader.decodeFromVideoDevice(undefined, document.getElementById('scanVideo'),
+      (result) => {
+        if (result && scannerActive) {
+          const code = result.getText();
+          scannerActive = false;
+          try { scannerControls?.stop(); } catch {}
+          closeModal();
+          const field = document.getElementById(targetId);
+          if (field) field.value = code;
+          toast('✅ Barcode captured: ' + code, 'success');
+          playBeep(true);
+        }
+      });
+  } catch {
+    status.textContent = '❌ Camera denied. Allow camera permission and use HTTPS.';
+  }
+}
+
+// ── Camera Barcode Scanner (in-browser, no hardware) ─────
+let scannerActive = false;
+let scannerControls = null;
+
+async function openCameraScanner() {
+  showModal(`
+    <div class="modal-header">
+      <div class="modal-title">📷 Camera Scanner</div>
+      <button class="modal-close" onclick="closeCameraScanner()">✕</button>
+    </div>
+    <div class="modal-body" style="text-align:center">
+      <div id="scanStatus" style="font-size:.85rem;color:#64748b;margin-bottom:.75rem">Loading camera…</div>
+      <div style="position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:4/3;max-width:100%">
+        <video id="scanVideo" style="width:100%;height:100%;object-fit:cover" muted playsinline></video>
+        <div style="position:absolute;inset:0;pointer-events:none">
+          <div style="position:absolute;left:10%;right:10%;top:50%;height:2px;background:#ef4444;box-shadow:0 0 8px #ef4444;transform:translateY(-50%)"></div>
+          <div style="position:absolute;left:8%;right:8%;top:30%;bottom:30%;border:3px solid rgba(255,255,255,.6);border-radius:12px"></div>
+        </div>
+      </div>
+      <p style="font-size:.78rem;color:#94a3b8;margin-top:.75rem">Point the camera at a barcode. It scans automatically.</p>
+      <div id="scanLast" style="font-size:.8rem;font-weight:600;margin-top:.5rem;min-height:1.2em"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeCameraScanner()">Done</button>
+    </div>`);
+
+  const status = document.getElementById('scanStatus');
+  try {
+    if (!window.ZXingBrowser) {
+      status.textContent = 'Loading scanner library…';
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/zxing-js.browser/0.1.5/zxing-browser.min.js');
+    }
+  } catch {
+    // Fallback CDN
+    try { await loadScript('https://unpkg.com/@zxing/browser@0.1.5/umd/zxing-browser.min.js'); }
+    catch { status.textContent = '❌ Could not load scanner. Check your connection.'; return; }
+  }
+
+  try {
+    const { BrowserMultiFormatReader } = window.ZXingBrowser;
+    const reader = new BrowserMultiFormatReader();
+    scannerActive = true;
+    status.textContent = '🔍 Scanning… point at a barcode';
+
+    let lastCode = '', lastAt = 0;
+    scannerControls = await reader.decodeFromVideoDevice(
+      undefined,
+      document.getElementById('scanVideo'),
+      (result, err) => {
+        if (result && scannerActive) {
+          const code = result.getText();
+          const now = Date.now();
+          // Debounce duplicate reads within 1.5s
+          if (code === lastCode && now - lastAt < 1500) return;
+          lastCode = code; lastAt = now;
+          const product = PRODUCTS.find(p => (p.barcode && p.barcode === code) || (p.sku && p.sku === code));
+          const lastEl = document.getElementById('scanLast');
+          if (product && product.stock > 0) {
+            addToCart(product.id);
+            playBeep(true);
+            if (lastEl) { lastEl.textContent = `✅ ${product.name} added`; lastEl.style.color = '#16a34a'; }
+          } else if (product) {
+            playBeep(false);
+            if (lastEl) { lastEl.textContent = `⚠️ ${product.name} out of stock`; lastEl.style.color = '#d97706'; }
+          } else {
+            playBeep(false);
+            if (lastEl) { lastEl.textContent = `❌ Unknown: ${code}`; lastEl.style.color = '#dc2626'; }
+          }
+        }
+      }
+    );
+  } catch (e) {
+    status.textContent = '❌ Camera access denied or unavailable. Allow camera permission and use HTTPS.';
+  }
+}
+
+function closeCameraScanner() {
+  scannerActive = false;
+  try { scannerControls?.stop(); } catch {}
+  scannerControls = null;
+  closeModal();
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
 function renderPOS() {
   document.getElementById('topbarActions').innerHTML = `
-    <span style="font-size:.72rem;color:#16a34a;font-weight:600;display:inline-flex;align-items:center;gap:.3rem;background:#dcfce7;padding:.3rem .6rem;border-radius:999px">
-      📷 Scanner Ready
-    </span>
+    <button class="btn btn-outline" onclick="openCameraScanner()">📷 Scan with Camera</button>
     <div class="search-wrap">
       <span class="search-icon">🔍</span>
       <input type="text" placeholder="Search or scan…" oninput="filterPOS(this.value)" style="padding-left:2.2rem;width:200px">
@@ -745,7 +884,12 @@ function openProductModal(p=null) {
     <div class="modal-body">
       <div class="form-row">
         <div class="form-group"><label>SKU</label><input type="text" id="pSku" value="${p?.sku||''}" placeholder="Auto-generated"></div>
-        <div class="form-group"><label>Barcode</label><input type="text" id="pBarcode" value="${p?.barcode||''}"></div>
+        <div class="form-group"><label>Barcode</label>
+          <div style="display:flex;gap:.4rem">
+            <input type="text" id="pBarcode" value="${p?.barcode||''}" placeholder="Scan or type">
+            <button type="button" class="btn btn-outline btn-sm" style="white-space:nowrap" onclick="scanIntoField('pBarcode')">📷</button>
+          </div>
+        </div>
       </div>
       <div class="form-group"><label>Product Name *</label><input type="text" id="pName" value="${escHtml(p?.name||'')}"></div>
       <div class="form-group"><label>Category</label><select id="pCategory"><option value="">— None —</option>${cats}</select></div>
