@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quantomize — Sales & Inventory Management for Every Store</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0f172a;background:#fff;line-height:1.6}
+.container{max-width:1100px;margin:0 auto;padding:0 1.5rem}
+header{padding:1rem 0;border-bottom:1px solid #f1f5f9;position:sticky;top:0;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);z-index:100}
+.header-inner{display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:1.25rem;font-weight:800;display:flex;align-items:center;gap:.5rem;color:#0f172a;text-decoration:none}
+.logo span{font-size:1.5rem}
+.nav-links{display:flex;align-items:center;gap:1rem}
+.btn{padding:.6rem 1.25rem;border-radius:10px;font-size:.9rem;font-weight:600;cursor:pointer;border:none;text-decoration:none;display:inline-block;transition:all .2s}
+.btn-primary{background:#2563eb;color:white}
+.btn-primary:hover{background:#1d4ed8;transform:translateY(-1px)}
+.btn-outline{background:white;color:#374151;border:1.5px solid #e2e8f0}
+.btn-outline:hover{border-color:#2563eb;color:#2563eb}
+.btn-lg{padding:.9rem 2rem;font-size:1rem}
+.hero{padding:5rem 0 4rem;text-align:center;background:linear-gradient(180deg,#f8fafc 0%,#fff 100%)}
+.hero h1{font-size:3rem;font-weight:800;line-height:1.15;margin-bottom:1.25rem;letter-spacing:-.02em}
+.hero h1 .accent{color:#2563eb}
+.hero p{font-size:1.15rem;color:#64748b;max-width:600px;margin:0 auto 2rem}
+.hero-cta{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+.trust{font-size:.8rem;color:#94a3b8;margin-top:1rem}
+.features{padding:4.5rem 0}
+.section-title{text-align:center;font-size:2rem;font-weight:800;margin-bottom:.5rem;letter-spacing:-.01em}
+.section-sub{text-align:center;color:#64748b;margin-bottom:3rem}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem}
+.feature{background:#f8fafc;border:1px solid #f1f5f9;border-radius:16px;padding:1.75rem}
+.feature-icon{width:44px;height:44px;border-radius:12px;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:1rem}
+.feature h3{font-size:1.05rem;font-weight:700;margin-bottom:.5rem}
+.feature p{font-size:.9rem;color:#64748b}
+.pricing{padding:4.5rem 0;background:#f8fafc}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;max-width:900px;margin:0 auto}
+.price-card{background:white;border:1.5px solid #e2e8f0;border-radius:20px;padding:2rem;position:relative}
+.price-card.featured{border-color:#2563eb;box-shadow:0 12px 40px rgba(37,99,235,.15)}
+.badge-popular{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#2563eb;color:white;font-size:.7rem;font-weight:700;padding:.25rem .75rem;border-radius:999px;text-transform:uppercase;letter-spacing:.05em}
+.plan-name{font-size:.9rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b}
+.plan-price{font-size:2.5rem;font-weight:800;margin:.5rem 0}
+.plan-price small{font-size:.9rem;color:#94a3b8;font-weight:500}
+.plan-features{list-style:none;margin:1.25rem 0;display:flex;flex-direction:column;gap:.6rem}
+.plan-features li{font-size:.875rem;color:#334155;display:flex;align-items:center;gap:.5rem}
+.plan-features li::before{content:'✓';color:#16a34a;font-weight:700}
+.cta-section{padding:5rem 0;text-align:center}
+.cta-section h2{font-size:2.25rem;font-weight:800;margin-bottom:1rem}
+.cta-section p{color:#64748b;margin-bottom:2rem}
+footer{border-top:1px solid #f1f5f9;padding:2rem 0;text-align:center;font-size:.85rem;color:#94a3b8}
+@media(max-width:640px){.hero h1{font-size:2rem}.hero{padding:3rem 0}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container header-inner">
+    <a href="/" class="logo"><span>🏪</span>Quantomize</a>
+    <div class="nav-links">
+      <a href="/login" class="btn btn-outline">Sign In</a>
+      <a href="/signup" class="btn btn-primary">Start Free</a>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container">
+    <h1>Run your store <span class="accent">smarter</span>,<br>not harder.</h1>
+    <p>Quantomize is the all-in-one sales and inventory management system for any store — POS, stock tracking, reports, and team management in one place.</p>
+    <div class="hero-cta">
+      <a href="/signup" class="btn btn-primary btn-lg">Start Free — 14 Days</a>
+      <a href="/login" class="btn btn-outline btn-lg">Sign In</a>
+    </div>
+    <p class="trust">No credit card required · Set up in 2 minutes</p>
+  </div>
+</section>
+
+<section class="features">
+  <div class="container">
+    <h2 class="section-title">Everything your store needs</h2>
+    <p class="section-sub">From checkout counter to back office</p>
+    <div class="features-grid">
+      <div class="feature">
+        <div class="feature-icon">🛒</div>
+        <h3>Point of Sale</h3>
+        <p>Fast, tap-friendly checkout with cart, discounts, and multiple payment methods. Works on any device.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📦</div>
+        <h3>Inventory Tracking</h3>
+        <p>Real-time stock levels, low-stock alerts, and a full movement log for every item in your store.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📊</div>
+        <h3>Reports & Insights</h3>
+        <p>Daily revenue, gross profit, top products, and staff performance — know your numbers at a glance.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">👥</div>
+        <h3>Team Management</h3>
+        <p>Add staff with role-based access. Cashiers see the POS; owners and admins see everything.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🧾</div>
+        <h3>Receipts & Sales History</h3>
+        <p>Automatic receipt numbering, full sales history, and one-click void with stock restore.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔐</div>
+        <h3>Secure & Private</h3>
+        <p>Your store's data is completely isolated. Bank-grade authentication powered by Supabase.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pricing">
+  <div class="container">
+    <h2 class="section-title">Simple pricing</h2>
+    <p class="section-sub">Start free, upgrade when you grow</p>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="plan-name">Free</div>
+        <div class="plan-price">₱0<small>/month</small></div>
+        <ul class="plan-features">
+          <li>14-day full trial</li>
+          <li>1 store</li>
+          <li>Up to 3 users</li>
+          <li>Up to 100 products</li>
+          <li>POS & inventory</li>
+        </ul>
+        <a href="/signup" class="btn btn-outline" style="width:100%;text-align:center">Get Started</a>
+      </div>
+      <div class="price-card featured">
+        <div class="badge-popular">Most Popular</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">₱499<small>/month</small></div>
+        <ul class="plan-features">
+          <li>Everything in Free</li>
+          <li>Unlimited users</li>
+          <li>Unlimited products</li>
+          <li>Advanced reports</li>
+          <li>Priority support</li>
+        </ul>
+        <a href="/signup" class="btn btn-primary" style="width:100%;text-align:center">Start Free Trial</a>
+      </div>
+      <div class="price-card">
+        <div class="plan-name">Enterprise</div>
+        <div class="plan-price">Custom</div>
+        <ul class="plan-features">
+          <li>Everything in Pro</li>
+          <li>Multiple branches</li>
+          <li>Custom integrations</li>
+          <li>Dedicated support</li>
+          <li>SLA guarantee</li>
+        </ul>
+        <a href="/signup" class="btn btn-outline" style="width:100%;text-align:center">Contact Us</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div class="container">
+    <h2>Ready to quantomize your store?</h2>
+    <p>Join store owners who track sales and inventory the smart way.</p>
+    <a href="/signup" class="btn btn-primary btn-lg">Create Your Store — Free</a>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    🏪 Quantomize — Sales & Inventory Management · © 2026
+  </div>
+</footer>
+
+</body>
+</html>

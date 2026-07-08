@@ -6,6 +6,7 @@ module.exports = async function handler(req, res) {
 
   const profile = await requireAuth(req, res);
   if (!profile) return;
+  const SID = profile.store_id;
 
   const { action } = req.body || {};
 
@@ -15,19 +16,19 @@ module.exports = async function handler(req, res) {
       if (!items?.length) return res.status(400).json({ success: false, error: 'No items' });
 
       for (const item of items) {
-        const { data: product } = await supabase.from('products').select('stock, name').eq('id', item.productId).single();
+        const { data: product } = await supabase.from('products').select('stock, name')
+          .eq('id', item.productId).eq('store_id', SID).single();
         if (!product) return res.status(400).json({ success: false, error: 'Product not found' });
         if (product.stock < item.qty) return res.status(400).json({ success: false, error: `Insufficient stock for: ${product.name}` });
       }
 
-      const { data: receiptData } = await supabase.rpc('next_receipt_no');
-      const receiptNo = receiptData;
+      const { data: receiptNo } = await supabase.rpc('next_receipt_no', { p_store: SID });
       const subtotal    = items.reduce((s, i) => s + (i.price * i.qty), 0);
       const discountAmt = Number(discount) || 0;
       const total       = subtotal - discountAmt;
 
       const { data: sale, error: saleErr } = await supabase.from('sales').insert({
-        receipt_no: receiptNo, user_id: profile.id, username: profile.username,
+        store_id: SID, receipt_no: receiptNo, user_id: profile.id, username: profile.username,
         subtotal, discount: discountAmt, tax: 0, total,
         payment_method: paymentMethod || 'cash',
         customer_name: customerName || null, notes: notes || null, status: 'completed'
@@ -35,14 +36,16 @@ module.exports = async function handler(req, res) {
       if (saleErr) throw saleErr;
 
       for (const item of items) {
-        const { data: product } = await supabase.from('products').select('name, cost_price, stock').eq('id', item.productId).single();
+        const { data: product } = await supabase.from('products').select('name, cost_price, stock')
+          .eq('id', item.productId).eq('store_id', SID).single();
         await supabase.from('sale_items').insert({
           sale_id: sale.id, product_id: item.productId, product_name: product.name,
           qty: item.qty, price: item.price, cost: product.cost_price, line_total: item.price * item.qty
         });
-        await supabase.from('products').update({ stock: product.stock - item.qty }).eq('id', item.productId);
+        await supabase.from('products').update({ stock: product.stock - item.qty })
+          .eq('id', item.productId).eq('store_id', SID);
         await supabase.from('inventory_log').insert({
-          product_id: item.productId, product_name: product.name,
+          store_id: SID, product_id: item.productId, product_name: product.name,
           type: 'SALE', qty: -item.qty, prev_stock: product.stock,
           reason: `Sale ${receiptNo}`, created_by: profile.username
         });
@@ -52,8 +55,8 @@ module.exports = async function handler(req, res) {
 
     if (action === 'getSales') {
       const { from, to } = req.body;
-      let query = supabase.from('sales').select('*').order('created_at', { ascending: false });
-      if (profile.role !== 'admin') query = query.eq('user_id', profile.id);
+      let query = supabase.from('sales').select('*').eq('store_id', SID).order('created_at', { ascending: false });
+      if (profile.role === 'staff') query = query.eq('user_id', profile.id);
       if (from) query = query.gte('created_at', from);
       if (to)   query = query.lte('created_at', to);
       const { data, error } = await query;
@@ -62,24 +65,24 @@ module.exports = async function handler(req, res) {
     }
 
     if (action === 'getSaleDetail') {
-      const { saleId } = req.body;
       const { data: sale, error } = await supabase
-        .from('sales').select('*, sale_items(*)').eq('id', saleId).single();
+        .from('sales').select('*, sale_items(*)').eq('id', req.body.saleId).eq('store_id', SID).single();
       if (error) throw error;
       return res.json({ success: true, sale });
     }
 
     if (action === 'voidSale') {
       if (!requireAdmin(profile, res)) return;
-      const { saleId } = req.body;
-      const { data: sale } = await supabase.from('sales').select('*, sale_items(*)').eq('id', saleId).single();
+      const { data: sale } = await supabase.from('sales').select('*, sale_items(*)')
+        .eq('id', req.body.saleId).eq('store_id', SID).single();
+      if (!sale) return res.status(404).json({ success: false, error: 'Sale not found' });
       if (sale.status === 'voided') return res.status(400).json({ success: false, error: 'Already voided' });
-      await supabase.from('sales').update({ status: 'voided' }).eq('id', saleId);
+      await supabase.from('sales').update({ status: 'voided' }).eq('id', sale.id);
       for (const item of sale.sale_items) {
         const { data: product } = await supabase.from('products').select('stock').eq('id', item.product_id).single();
         await supabase.from('products').update({ stock: (product?.stock || 0) + item.qty }).eq('id', item.product_id);
         await supabase.from('inventory_log').insert({
-          product_id: item.product_id, product_name: item.product_name,
+          store_id: SID, product_id: item.product_id, product_name: item.product_name,
           type: 'VOID', qty: item.qty, prev_stock: product?.stock || 0,
           reason: `Void of sale ${sale.receipt_no}`, created_by: profile.username
         });
@@ -96,7 +99,7 @@ module.exports = async function handler(req, res) {
       if (type === 'summary') {
         const { data: sales } = await supabase.from('sales')
           .select('*, sale_items(qty, price, cost, line_total)')
-          .neq('status', 'voided').gte('created_at', fromD).lte('created_at', toD);
+          .eq('store_id', SID).neq('status', 'voided').gte('created_at', fromD).lte('created_at', toD);
         let totalRevenue = 0, totalDiscount = 0, cogs = 0;
         const dailyMap = {};
         for (const sale of sales || []) {
@@ -109,7 +112,7 @@ module.exports = async function handler(req, res) {
         const daily = Object.keys(dailyMap).sort().map(d => ({ date: d, revenue: dailyMap[d] }));
         const totalOrders = sales?.length || 0;
         const { data: lowStock } = await supabase.from('products')
-          .select('id, name, stock, low_stock_alert').eq('active', true);
+          .select('id, name, stock, low_stock_alert').eq('store_id', SID).eq('active', true);
         return res.json({ success: true, summary: {
           totalRevenue, grossProfit: totalRevenue - cogs, totalDiscount, totalOrders, cogs,
           avgOrderValue: totalOrders ? totalRevenue / totalOrders : 0,
@@ -118,7 +121,8 @@ module.exports = async function handler(req, res) {
       }
 
       if (type === 'products') {
-        const { data: sales } = await supabase.from('sales').select('id').neq('status','voided').gte('created_at',fromD).lte('created_at',toD);
+        const { data: sales } = await supabase.from('sales').select('id').eq('store_id', SID)
+          .neq('status','voided').gte('created_at',fromD).lte('created_at',toD);
         const saleIds = (sales||[]).map(s=>s.id);
         if (!saleIds.length) return res.json({ success: true, products: [] });
         const { data: items } = await supabase.from('sale_items').select('*').in('sale_id', saleIds);
@@ -133,7 +137,8 @@ module.exports = async function handler(req, res) {
       }
 
       if (type === 'staff') {
-        const { data: sales } = await supabase.from('sales').select('user_id, username, total').neq('status','voided').gte('created_at',fromD).lte('created_at',toD);
+        const { data: sales } = await supabase.from('sales').select('user_id, username, total')
+          .eq('store_id', SID).neq('status','voided').gte('created_at',fromD).lte('created_at',toD);
         const staffMap = {};
         for (const sale of sales||[]) {
           if (!staffMap[sale.user_id]) staffMap[sale.user_id] = { userId: sale.user_id, username: sale.username, sales: 0, revenue: 0 };

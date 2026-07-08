@@ -13,15 +13,18 @@ async function requireAuth(req, res) {
   if (error || !user) { res.status(401).json({ success: false, error: 'Unauthorized' }); return null; }
 
   const { data: profile } = await supabase
-    .from('profiles').select('*').eq('id', user.id).single();
+    .from('profiles').select('*, stores(name, plan, active)').eq('id', user.id).single();
 
   if (!profile?.active) { res.status(403).json({ success: false, error: 'Account disabled' }); return null; }
+  if (!profile.stores?.active) { res.status(403).json({ success: false, error: 'Store suspended' }); return null; }
+  if (!profile.store_id) { res.status(403).json({ success: false, error: 'No store assigned' }); return null; }
 
   return profile;
 }
 
+// owner and admin can manage
 function requireAdmin(profile, res) {
-  if (profile.role !== 'admin') {
+  if (profile.role !== 'admin' && profile.role !== 'owner') {
     res.status(403).json({ success: false, error: 'Admin only' });
     return false;
   }
