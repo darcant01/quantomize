@@ -475,11 +475,29 @@ async function checkout() {
   const items = cart.map(i=>({productId:i.productId,qty:i.qty,price:i.price}));
   const r = await api('sales','createSale',{items,discount,paymentMethod:payment,customerName:customer});
   if (r.success) {
-    toast(`✅ Sale done! Receipt: ${r.receiptNo}`,'success');
     cart=[];
     const pr = await api('products','getProducts');
     PRODUCTS = pr.products||[];
     renderPOS();
+    // Load the sale and offer printing
+    const detail = await api('sales','getSaleDetail',{saleId: r.saleId});
+    if (detail.success) {
+      LAST_SALE = detail.sale;
+      showModal(`
+        <div class="modal-header"><div class="modal-title">✅ Sale Complete</div><button class="modal-close" onclick="closeModal()">✕</button></div>
+        <div class="modal-body" style="text-align:center">
+          <div style="font-size:3rem;margin-bottom:.5rem">🧾</div>
+          <div style="font-size:1.1rem;font-weight:700;margin-bottom:.25rem">Receipt ${escHtml(r.receiptNo)}</div>
+          <div style="font-size:1.5rem;font-weight:800;color:#16a34a;margin-bottom:1rem">${fmt(r.total)}</div>
+          <p style="font-size:.85rem;color:#64748b">Payment received via ${escHtml(payment)}</p>
+        </div>
+        <div class="modal-footer" style="justify-content:center">
+          <button class="btn btn-outline" onclick="closeModal()">New Sale</button>
+          <button class="btn btn-primary" onclick="printReceipt()">🖨 Print Receipt</button>
+        </div>`);
+    } else {
+      toast(`✅ Sale done! Receipt: ${r.receiptNo}`,'success');
+    }
   } else toast(r.error||'Sale failed','error');
 }
 
@@ -772,10 +790,13 @@ PAGES.sales = async () => {
     </div>`);
 };
 
+let LAST_SALE = null;
+
 async function viewSale(saleId) {
   const r = await api('sales','getSaleDetail',{saleId});
   if (!r.success) return toast(r.error,'error');
   const s = r.sale;
+  LAST_SALE = s;
   const items = (s.sale_items||[]).map(i=>`
     <tr><td>${escHtml(i.product_name)}</td><td class="text-right">${i.qty}</td>
     <td class="text-right">${fmt(i.price)}</td><td class="text-right">${fmt(i.line_total)}</td></tr>`).join('');
@@ -797,7 +818,73 @@ async function viewSale(saleId) {
       <div class="summary-row total"><span>Total</span><span>${fmt(s.total)}</span></div>
       <div style="margin-top:.5rem"><span class="badge ${s.status==='voided'?'badge-red':'badge-green'}">${s.status}</span></div>
     </div>
-    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal()">Close</button></div>`, 'modal-lg');
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Close</button>
+      <button class="btn btn-primary" onclick="printReceipt()">🖨 Print Receipt</button>
+    </div>`, 'modal-lg');
+}
+
+function printReceipt() {
+  const s = LAST_SALE;
+  if (!s) return toast('No receipt loaded', 'error');
+  const storeName  = SETTINGS.store_name    || 'Quantomize Store';
+  const storeAddr  = SETTINGS.store_address || '';
+  const storePhone = SETTINGS.store_phone   || '';
+
+  const itemRows = (s.sale_items||[]).map(i => `
+    <tr>
+      <td colspan="3" style="padding-top:4px">${escHtml(i.product_name)}</td>
+    </tr>
+    <tr>
+      <td style="padding-left:8px">${i.qty} x ${fmt(i.price)}</td>
+      <td></td>
+      <td style="text-align:right">${fmt(i.line_total)}</td>
+    </tr>`).join('');
+
+  const html = `<!DOCTYPE html>
+<html><head><title>Receipt ${escHtml(s.receipt_no)}</title>
+<style>
+  @page { margin: 0; size: 80mm auto; }
+  body { font-family: 'Courier New', monospace; font-size: 12px; width: 72mm; margin: 0 auto; padding: 4mm; color: #000; }
+  .center { text-align: center; }
+  .bold { font-weight: 700; }
+  hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .totals td { padding-top: 2px; }
+  .big { font-size: 15px; font-weight: 700; }
+  .small { font-size: 10px; }
+</style></head>
+<body onload="window.print(); setTimeout(()=>window.close(), 300)">
+  <div class="center bold" style="font-size:15px">${escHtml(storeName)}</div>
+  ${storeAddr ? `<div class="center small">${escHtml(storeAddr)}</div>` : ''}
+  ${storePhone ? `<div class="center small">Tel: ${escHtml(storePhone)}</div>` : ''}
+  <hr>
+  <table>
+    <tr><td>Receipt:</td><td style="text-align:right" class="bold">${escHtml(s.receipt_no)}</td></tr>
+    <tr><td>Date:</td><td style="text-align:right">${fmtDateTime(s.created_at)}</td></tr>
+    <tr><td>Cashier:</td><td style="text-align:right">${escHtml(s.username||'—')}</td></tr>
+    ${s.customer_name ? `<tr><td>Customer:</td><td style="text-align:right">${escHtml(s.customer_name)}</td></tr>` : ''}
+  </table>
+  <hr>
+  <table>${itemRows}</table>
+  <hr>
+  <table class="totals">
+    <tr><td>Subtotal</td><td style="text-align:right">${fmt(s.subtotal)}</td></tr>
+    ${Number(s.discount) > 0 ? `<tr><td>Discount</td><td style="text-align:right">-${fmt(s.discount)}</td></tr>` : ''}
+    <tr class="big"><td>TOTAL</td><td style="text-align:right">${fmt(s.total)}</td></tr>
+    <tr><td>Payment</td><td style="text-align:right">${escHtml((s.payment_method||'cash').toUpperCase())}</td></tr>
+  </table>
+  ${s.status === 'voided' ? '<hr><div class="center bold" style="font-size:14px">*** VOIDED ***</div>' : ''}
+  <hr>
+  <div class="center">Thank you for shopping!</div>
+  <div class="center small">Please come again</div>
+  <div class="center small" style="margin-top:6px">Powered by Quantomize</div>
+</body></html>`;
+
+  const w = window.open('', '_blank', 'width=400,height=600');
+  if (!w) return toast('Pop-up blocked — allow pop-ups to print', 'error');
+  w.document.write(html);
+  w.document.close();
 }
 
 async function voidSale(saleId) {
