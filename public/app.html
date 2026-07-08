@@ -1179,7 +1179,8 @@ PAGES.reports = async () => {
   document.getElementById('topbarActions').innerHTML = `
     <input type="date" id="rFrom" value="${from}" style="width:auto">
     <input type="date" id="rTo" value="${to}" style="width:auto">
-    <button class="btn btn-primary" onclick="loadReports()">Run</button>`;
+    <button class="btn btn-primary" onclick="loadReports()">Run</button>
+    <button class="btn btn-outline" onclick="printReport()">🖨 Print</button>`;
   loadReports();
 };
 
@@ -1193,6 +1194,12 @@ async function loadReports() {
     api('sales','getReports',{type:'staff',   from,to}),
   ]);
   const s = sumR.summary||{};
+  LAST_REPORT = {
+    from, to,
+    summary: s,
+    products: prodR.products || [],
+    staff: staffR.staff || []
+  };
   const prodRows = (prodR.products||[]).map((p,i)=>`
     <tr><td>${i+1}</td><td>${escHtml(p.name)}</td><td class="text-right">${p.qty}</td>
     <td class="text-right">${fmt(p.revenue)}</td><td class="text-right">${fmt(p.profit)}</td></tr>`
@@ -1223,6 +1230,102 @@ async function loadReports() {
         <tbody>${staffRows}</tbody></table>
       </div>
     </div>`);
+}
+
+
+let LAST_REPORT = null;
+
+function printReport() {
+  const r = LAST_REPORT;
+  if (!r) return toast('Run a report first', 'error');
+  const s = r.summary || {};
+  const logo  = SETTINGS.store_logo || '';
+  const name  = SETTINGS.store_name || 'Quantomize Store';
+  const addr  = SETTINGS.store_address || '';
+  const phone = SETTINGS.store_phone || '';
+  const tin   = SETTINGS.tin_number || '';
+
+  const fmtRange = (d) => d ? new Date(d+'T00:00:00').toLocaleDateString('en',{month:'long',day:'numeric',year:'numeric'}) : '';
+
+  const prodRows = (r.products||[]).map((p,i)=>`
+    <tr><td>${i+1}</td><td>${escHtml(p.name)}</td>
+    <td style="text-align:right">${p.qty}</td>
+    <td style="text-align:right">${fmt(p.revenue)}</td>
+    <td style="text-align:right">${fmt(p.profit)}</td></tr>`).join('')
+    || '<tr><td colspan="5" style="text-align:center;padding:12px;color:#888">No sales in this period</td></tr>';
+
+  const staffRows = (r.staff||[]).map((st,i)=>`
+    <tr><td>${i+1}</td><td>${escHtml(st.username)}</td>
+    <td style="text-align:right">${st.sales}</td>
+    <td style="text-align:right">${fmt(st.revenue)}</td></tr>`).join('')
+    || '<tr><td colspan="4" style="text-align:center;padding:12px;color:#888">No sales in this period</td></tr>';
+
+  const html = `<!DOCTYPE html><html><head><title>Sales Report — ${escHtml(name)}</title>
+<style>
+  @page { margin: 18mm; }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #1e293b; font-size: 12px; margin: 0; }
+  .head { display: flex; align-items: center; gap: 16px; border-bottom: 3px solid #2563eb; padding-bottom: 14px; margin-bottom: 6px; }
+  .head img { max-width: 70px; max-height: 70px; object-fit: contain; }
+  .head h1 { font-size: 20px; margin: 0; color: #0f172a; }
+  .head .meta { font-size: 11px; color: #64748b; margin-top: 2px; line-height: 1.5; }
+  .report-title { text-align: center; font-size: 15px; font-weight: bold; margin: 16px 0 4px; }
+  .report-range { text-align: center; font-size: 12px; color: #64748b; margin-bottom: 18px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 22px; }
+  .stat { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; }
+  .stat .label { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: #64748b; }
+  .stat .value { font-size: 18px; font-weight: bold; color: #0f172a; margin-top: 2px; }
+  h2 { font-size: 13px; color: #2563eb; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin: 20px 0 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th { background: #f1f5f9; text-align: left; padding: 6px 8px; font-size: 10px; text-transform: uppercase; color: #475569; border-bottom: 1px solid #cbd5e1; }
+  td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; }
+  .footer { margin-top: 30px; text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+</style></head>
+<body onload="window.print(); setTimeout(()=>window.close(), 400)">
+  <div class="head">
+    ${logo ? `<img src="${logo}">` : ''}
+    <div>
+      <h1>${escHtml(name)}</h1>
+      <div class="meta">
+        ${addr ? escHtml(addr)+'<br>' : ''}
+        ${phone ? 'Tel: '+escHtml(phone) : ''}${phone && tin ? ' &nbsp;·&nbsp; ' : ''}${tin ? 'TIN: '+escHtml(tin) : ''}
+      </div>
+    </div>
+  </div>
+
+  <div class="report-title">SALES REPORT</div>
+  <div class="report-range">${fmtRange(r.from)} — ${fmtRange(r.to)}</div>
+
+  <div class="stats">
+    <div class="stat"><div class="label">Total Revenue</div><div class="value">${fmt(s.totalRevenue||0)}</div></div>
+    <div class="stat"><div class="label">Gross Profit</div><div class="value">${fmt(s.grossProfit||0)}</div></div>
+    <div class="stat"><div class="label">Orders</div><div class="value">${s.totalOrders||0}</div></div>
+    <div class="stat"><div class="label">Avg Order Value</div><div class="value">${fmt(s.avgOrderValue||0)}</div></div>
+    <div class="stat"><div class="label">Discounts Given</div><div class="value">${fmt(s.totalDiscount||0)}</div></div>
+    <div class="stat"><div class="label">Cost of Goods</div><div class="value">${fmt(s.cogs||0)}</div></div>
+  </div>
+
+  <h2>Top Products by Revenue</h2>
+  <table>
+    <thead><tr><th>#</th><th>Product</th><th style="text-align:right">Qty Sold</th><th style="text-align:right">Revenue</th><th style="text-align:right">Profit</th></tr></thead>
+    <tbody>${prodRows}</tbody>
+  </table>
+
+  <h2>Staff Performance</h2>
+  <table>
+    <thead><tr><th>#</th><th>Staff</th><th style="text-align:right">Sales</th><th style="text-align:right">Revenue</th></tr></thead>
+    <tbody>${staffRows}</tbody>
+  </table>
+
+  <div class="footer">
+    Generated ${new Date().toLocaleString('en',{dateStyle:'medium',timeStyle:'short'})} by ${escHtml(USERNAME)} · Powered by Quantomize
+  </div>
+</body></html>`;
+
+  const w = window.open('', '_blank', 'width=800,height=600');
+  if (!w) return toast('Pop-up blocked — allow pop-ups to print', 'error');
+  w.document.write(html);
+  w.document.close();
 }
 
 // ── Users ────────────────────────────────────────────────
