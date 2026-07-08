@@ -1,4 +1,4 @@
-const { supabase, requireAuth, requireAdmin, setCors } = require('./_middleware');
+const { supabase, requireAuth, requireAdmin, setCors } = require('./_lib');
 
 module.exports = async function handler(req, res) {
   setCors(res);
