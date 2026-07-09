@@ -1086,13 +1086,8 @@ function stockBadge(p) {
   return `<span class="badge badge-green">${p.stock} in stock</span>`;
 }
 
-function renderProductsTable(prods) {
-  const canManage = can('products_manage');
-
-  const emptyState = `<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">No products found</div>${canManage?`<div class="empty-desc" style="margin-bottom:1rem">Start fast with a ready-made catalog</div><button class="btn btn-primary" onclick="openImportModal()">🇵🇭 Import Sari-Sari Starter Pack</button>`:''}</div>`;
-
-  // Desktop table rows
-  const rows = prods.length===0
+function productTableRows(prods, canManage, emptyState) {
+  return prods.length===0
     ? `<tr><td colspan="8">${emptyState}</td></tr>`
     : prods.map(p=>{
         const adminAct = canManage?`
@@ -1110,9 +1105,10 @@ function renderProductsTable(prods) {
           <td><div class="gap-sm">${adminAct}</div></td>
         </tr>`;
       }).join('');
+}
 
-  // Mobile cards
-  const cards = prods.length===0
+function productCards(prods, canManage, emptyState) {
+  return prods.length===0
     ? emptyState
     : prods.map(p=>`
       <div class="product-card" ${canManage?`onclick='openProductModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'`:''}>
@@ -1126,20 +1122,25 @@ function renderProductsTable(prods) {
           ${canManage?`<button class="pc-adjust" onclick='event.stopPropagation();openAdjustStock("${p.id}","${escHtml(p.name)}")'>± Stock</button>`:''}
         </div>
       </div>`).join('');
+}
+
+function renderProductsTable(prods) {
+  const canManage = can('products_manage');
+  const emptyState = `<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">No products found</div>${canManage?`<div class="empty-desc" style="margin-bottom:1rem">Start fast with a ready-made catalog</div><button class="btn btn-primary" onclick="openImportModal()">🇵🇭 Import Sari-Sari Starter Pack</button>`:''}</div>`;
 
   setContent(`
     <div class="table-card products-desktop">
       <div class="table-header">
-        <div class="table-title">Products (${prods.length})</div>
+        <div class="table-title">Products (<span id="prodCountDesktop">${prods.length}</span>)</div>
         <div class="search-wrap">
           <span class="search-icon">🔍</span>
-          <input type="text" placeholder="Search…" oninput="filterProductsList(this.value)" style="padding-left:2.2rem;width:200px">
+          <input type="text" id="prodSearchDesktop" placeholder="Search…" oninput="filterProductsList(this.value)" style="padding-left:2.2rem;width:200px">
         </div>
       </div>
       <div style="overflow-x:auto">
         <table>
           <thead><tr><th>SKU</th><th>Name</th><th>Category</th><th>Cost</th><th>Price</th><th>Stock</th><th>Unit</th><th>Actions</th></tr></thead>
-          <tbody>${rows}</tbody>
+          <tbody id="prodTableBody">${productTableRows(prods, canManage, emptyState)}</tbody>
         </table>
       </div>
     </div>
@@ -1147,22 +1148,37 @@ function renderProductsTable(prods) {
     <div class="products-mobile">
       <div class="search-wrap" style="margin-bottom:.75rem">
         <span class="search-icon">🔍</span>
-        <input type="text" placeholder="Search products…" oninput="filterProductsList(this.value)" style="padding-left:2.2rem;width:100%">
+        <input type="text" id="prodSearchMobile" placeholder="Search products…" oninput="filterProductsList(this.value)" style="padding-left:2.2rem;width:100%">
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
-        <span style="font-size:.8rem;color:#64748b;font-weight:600">${prods.length} product${prods.length===1?'':'s'}${canManage?' · tap to edit':''}</span>
+        <span style="font-size:.8rem;color:#64748b;font-weight:600"><span id="prodCountMobile">${prods.length}</span> product${prods.length===1?'':'s'}${canManage?' · tap to edit':''}</span>
         ${canManage?`<button class="btn btn-outline btn-sm" onclick="openImportModal()">📥 Import</button>`:''}
       </div>
-      <div class="product-cards">${cards}</div>
+      <div class="product-cards" id="prodCards">${productCards(prods, canManage, emptyState)}</div>
     </div>
 
     ${canManage?`<button class="fab" onclick="openProductModal()" aria-label="Add product">+</button>`:''}
   `);
 }
 
+// Only updates the LISTS, never the search inputs — so mobile keyboard stays open
 function filterProductsList(q) {
-  const f = PRODUCTS.filter(p=>p.name.toLowerCase().includes(q.toLowerCase())||(p.sku||'').toLowerCase().includes(q.toLowerCase()));
-  renderProductsTable(f);
+  const canManage = can('products_manage');
+  const emptyState = `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No matches</div></div>`;
+  const emptyRow = `<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">No products found</div></div>`;
+  const query = (q||'').toLowerCase();
+  const f = PRODUCTS.filter(p =>
+    p.name.toLowerCase().includes(query) || (p.sku||'').toLowerCase().includes(query)
+  );
+
+  const body = document.getElementById('prodTableBody');
+  if (body) body.innerHTML = f.length ? productTableRows(f, canManage, emptyRow)
+                                      : `<tr><td colspan="8">${emptyState}</td></tr>`;
+  const cards = document.getElementById('prodCards');
+  if (cards) cards.innerHTML = productCards(f, canManage, emptyState);
+
+  const cd = document.getElementById('prodCountDesktop'); if (cd) cd.textContent = f.length;
+  const cm = document.getElementById('prodCountMobile');  if (cm) cm.textContent = f.length;
 }
 
 async function openImportModal() {
