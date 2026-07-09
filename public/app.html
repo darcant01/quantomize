@@ -149,10 +149,12 @@ input:focus,select:focus,textarea:focus{border-color:#2563eb;box-shadow:0 0 0 3p
   .topbar-actions input[type=text]{width:130px!important}
   .pos-layout{grid-template-columns:1fr;height:auto;gap:.75rem}
   .pos-cart{position:sticky;bottom:0;max-height:none}
-  .pos-products-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:.5rem}
-  .product-tile{padding:.6rem .4rem}
-  .product-emoji{font-size:1.6rem}
-  .product-tile-name{font-size:.72rem}
+  .pos-products-grid{grid-template-columns:repeat(2,1fr);gap:.6rem}
+  .product-tile{padding:.9rem .6rem;min-height:110px;display:flex;flex-direction:column;justify-content:center}
+  .product-tile:active{transform:scale(.96);border-color:#2563eb;background:#eff6ff}
+  .product-emoji{font-size:2rem}
+  .product-tile-name{font-size:.82rem}
+  .product-tile-price{font-size:.9rem}
   .form-row,.form-row-3{grid-template-columns:1fr}
   .stats-grid{grid-template-columns:1fr 1fr;gap:.75rem}
   .stat-card{padding:1rem}
@@ -181,6 +183,43 @@ input:focus,select:focus,textarea:focus{border-color:#2563eb;box-shadow:0 0 0 3p
   .search-wrap input{font-size:16px}
 }
 html{-webkit-text-size-adjust:100%}
+@media(max-width:768px){
+  .pos-mobile-controls{display:flex!important}
+  /* Hide the topbar search/scan on mobile ONLY on POS (shown in-content) */
+  body.page-pos #topbarActions{display:none}
+}
+
+/* ── Mobile POS ── */
+.mobile-cart-bar{display:none}
+.cart-sheet-backdrop{display:none}
+@media(max-width:768px){
+  .pos-layout{display:block;height:auto}
+  .pos-products{padding-bottom:80px}
+  /* Hide the inline desktop cart on mobile */
+  .pos-cart{display:none!important}
+  /* Floating bottom cart bar */
+  .mobile-cart-bar{
+    display:flex;position:fixed;left:0;right:0;bottom:0;z-index:120;
+    background:#16a34a;color:#fff;padding:.85rem 1.1rem;align-items:center;
+    justify-content:space-between;box-shadow:0 -4px 20px rgba(0,0,0,.18);cursor:pointer
+  }
+  .mobile-cart-bar.hidden{display:none}
+  .mobile-cart-bar .mcb-left{display:flex;align-items:center;gap:.6rem;font-weight:700}
+  .mobile-cart-bar .mcb-count{background:rgba(255,255,255,.25);border-radius:999px;padding:.15rem .6rem;font-size:.85rem}
+  .mobile-cart-bar .mcb-total{font-size:1.1rem;font-weight:800}
+  /* Slide-up cart sheet */
+  .cart-sheet-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:130}
+  .cart-sheet-backdrop.open{display:block}
+  .cart-sheet{
+    position:fixed;left:0;right:0;bottom:0;z-index:140;background:#fff;
+    border-radius:20px 20px 0 0;max-height:88vh;display:flex;flex-direction:column;
+    transform:translateY(100%);transition:transform .28s ease
+  }
+  .cart-sheet.open{transform:translateY(0)}
+  .cart-sheet .sheet-handle{width:40px;height:4px;background:#cbd5e1;border-radius:2px;margin:.6rem auto}
+  .cart-sheet .cart-items{max-height:38vh}
+}
+
 /* Smooth momentum scroll for tables on iOS */
 .table-card>div[style*="overflow-x"]{-webkit-overflow-scrolling:touch}
 </style>
@@ -384,6 +423,7 @@ let currentPage = '';
 function navigate(page) {
   currentPage = page;
   closeSidebar();
+  document.body.className = 'page-' + page;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   const navEl = document.getElementById('nav-' + page);
   if (navEl) navEl.classList.add('active');
@@ -696,10 +736,53 @@ function renderPOS() {
   setContent(`
     <div class="pos-layout">
       <div class="pos-products">
+        <div class="pos-mobile-controls" style="display:none;gap:.5rem;margin-bottom:.75rem">
+          <div class="search-wrap" style="flex:1">
+            <span class="search-icon">🔍</span>
+            <input type="text" placeholder="Search or scan…" oninput="filterPOS(this.value)" style="padding-left:2.2rem;width:100%">
+          </div>
+          <button class="btn btn-outline" onclick="openCameraScanner()" style="white-space:nowrap">📷</button>
+        </div>
         <div class="pos-products-grid" id="posGrid">${renderTiles(PRODUCTS)}</div>
       </div>
       <div class="pos-cart" id="posCart">${renderCart()}</div>
+    </div>
+    <!-- Mobile floating cart bar -->
+    <div class="mobile-cart-bar hidden" id="mobileCartBar" onclick="openCartSheet()">
+      <div class="mcb-left">🛒 <span class="mcb-count" id="mcbCount">0</span> items</div>
+      <div class="mcb-total" id="mcbTotal">${fmt(0)}</div>
+    </div>
+    <!-- Mobile cart sheet -->
+    <div class="cart-sheet-backdrop" id="cartSheetBackdrop" onclick="closeCartSheet()"></div>
+    <div class="cart-sheet" id="cartSheet">
+      <div class="sheet-handle"></div>
+      <div id="cartSheetBody" style="flex:1;display:flex;flex-direction:column;overflow:hidden"></div>
     </div>`);
+  updateMobileCartBar();
+}
+
+function updateMobileCartBar() {
+  const bar = document.getElementById('mobileCartBar');
+  if (!bar) return;
+  const count = cart.reduce((s,i)=>s+i.qty,0);
+  const subtotal = cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const discEl = document.querySelector('.cart-disc-input');
+  const discount = discEl ? Number(discEl.value)||0 : 0;
+  const total = Math.max(0, subtotal - discount);
+  document.getElementById('mcbCount').textContent = count;
+  document.getElementById('mcbTotal').textContent = fmt(total);
+  bar.classList.toggle('hidden', count === 0);
+}
+
+function openCartSheet() {
+  const body = document.getElementById('cartSheetBody');
+  body.innerHTML = renderCart();
+  document.getElementById('cartSheet').classList.add('open');
+  document.getElementById('cartSheetBackdrop').classList.add('open');
+}
+function closeCartSheet() {
+  document.getElementById('cartSheet').classList.remove('open');
+  document.getElementById('cartSheetBackdrop').classList.remove('open');
 }
 
 function getCatName(id) { const c = CATEGORIES.find(c=>c.id===id); return c?c.name:'—'; }
@@ -742,7 +825,15 @@ function changeQty(i,d) {
   if(nq>item.maxQty){toast('Exceeds stock','error');return;}
   item.qty=nq; refreshCart();
 }
-function refreshCart() { document.getElementById('posCart').innerHTML = renderCart(); }
+function refreshCart() {
+  const desktop = document.getElementById('posCart');
+  if (desktop) desktop.innerHTML = renderCart();
+  const sheet = document.getElementById('cartSheetBody');
+  if (sheet && document.getElementById('cartSheet')?.classList.contains('open')) {
+    sheet.innerHTML = renderCart();
+  }
+  updateMobileCartBar();
+}
 
 function renderCart() {
   const subtotal = cart.reduce((s,i)=>s+i.price*i.qty,0);
@@ -810,6 +901,7 @@ async function checkout() {
   const r = await api('sales','createSale',{items,discount,paymentMethod:payment,customerName:customer});
   if (r.success) {
     cart=[];
+    closeCartSheet();
     const pr = await api('products','getProducts');
     PRODUCTS = pr.products||[];
     renderPOS();
