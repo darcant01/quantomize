@@ -253,6 +253,12 @@ html{-webkit-text-size-adjust:100%}
 /* Smooth momentum scroll for tables on iOS */
 .table-card>div[style*="overflow-x"]{-webkit-overflow-scrolling:touch}
 </style>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Quantomize">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 </head>
 <body>
 <div class="app-shell">
@@ -267,6 +273,7 @@ html{-webkit-text-size-adjust:100%}
     </div>
     <nav id="sidebarNav"></nav>
     <div class="sidebar-footer">
+      <button id="installBtn" class="logout-btn" style="display:none;margin-bottom:.5rem;background:rgba(147,197,253,.25)" onclick="installApp()">📥 Install App</button>
       <button class="logout-btn" onclick="doLogout()">🚪 Sign Out</button>
     </div>
   </aside>
@@ -1794,6 +1801,33 @@ async function saveSettings() {
 
 // ── Start ─────────────────────────────────────────────────
 init();
+</script>
+<script>
+  // Register service worker (PWA)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(()=>{});
+    });
+  }
+  // Capture install prompt
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    const btn = document.getElementById('installBtn');
+    if (btn) btn.style.display = 'inline-flex';
+  });
+  async function installApp() {
+    if (!deferredPrompt) {
+      alert('To install:\n\niPhone/iPad (Safari): tap Share \u2192 Add to Home Screen.\nAndroid (Chrome): tap menu \u22ee \u2192 Install app.\nDesktop (Chrome/Edge): click the install icon in the address bar.');
+      return;
+    }
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    const btn = document.getElementById('installBtn');
+    if (btn) btn.style.display = 'none';
+  }
 </script>
 </body>
 </html>
