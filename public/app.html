@@ -252,8 +252,109 @@ html{-webkit-text-size-adjust:100%}
 
 /* Smooth momentum scroll for tables on iOS */
 .table-card>div[style*="overflow-x"]{-webkit-overflow-scrolling:touch}
+
+/* ═══════════════ QUANTOMIZE THEME 2.0 — Ion ═══════════════
+   Palette: void #0A0F1E · pulse #6366F1 · ion #22D3EE · paper #F5F7FB
+   Type: Space Grotesk (display/numbers) + Inter (UI)
+   Signature: the "ion rail" — thin cyan glow line on active elements */
+
+:root{
+  --void:#0A0F1E; --void2:#111A31;
+  --pulse:#6366F1; --blue:#3B82F6; --ion:#22D3EE;
+  --paper:#F5F7FB; --carbon:#101828; --slate2:#667085;
+  --line:#E7EBF3;
+  --grad:linear-gradient(135deg,#6366F1 0%,#3B82F6 50%,#22D3EE 100%);
+  --glow:0 0 0 1px rgba(34,211,238,.25),0 4px 20px -4px rgba(59,130,246,.45);
+}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--paper);color:#1D2939}
+
+/* ── Sidebar: deep space ── */
+.sidebar{background:linear-gradient(180deg,var(--void) 0%,var(--void2) 100%);border-right:1px solid rgba(255,255,255,.06)}
+.sidebar-header{border-bottom:1px solid rgba(255,255,255,.07)}
+.sidebar-logo{font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:.01em}
+.store-name-small{color:rgba(148,183,255,.55);text-transform:uppercase;font-size:.62rem;letter-spacing:.14em;font-weight:600}
+.sidebar-user{border-bottom:1px solid rgba(255,255,255,.07)}
+.nav-section{color:rgba(148,183,255,.45);letter-spacing:.14em}
+.nav-item{color:rgba(226,232,255,.72);border-radius:0 10px 10px 0;margin-right:.6rem;transition:background .15s,color .15s}
+.nav-item:hover{background:rgba(99,102,241,.14);color:#fff}
+.nav-item.active{background:linear-gradient(90deg,rgba(99,102,241,.22),rgba(34,211,238,.08));color:#fff;font-weight:600}
+.nav-item.active::before{background:var(--grad);width:3px;box-shadow:0 0 12px rgba(34,211,238,.8)}
+.sidebar-footer{border-top:1px solid rgba(255,255,255,.07)}
+.logout-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
+.logout-btn:hover{background:rgba(255,255,255,.12)}
+
+/* ── Topbar: frosted glass with ion rail ── */
+.topbar{background:rgba(255,255,255,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);position:sticky}
+.topbar::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;background:var(--grad);opacity:.35}
+.topbar-title{font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:-.01em;color:var(--carbon)}
+
+/* ── Cards ── */
+.stat-card,.table-card,.product-card{border:1px solid var(--line);border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.04),0 10px 28px -14px rgba(16,24,40,.14)}
+.stat-card{position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad);opacity:.85}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(16,24,40,.06),0 18px 36px -16px rgba(59,130,246,.28)}
+.stat-value{font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:-.02em;color:var(--carbon)}
+.stat-label{color:var(--slate2)}
+.table-title{font-family:'Space Grotesk',sans-serif;letter-spacing:-.01em}
+thead th{background:#F8FAFF;color:#475467}
+tbody tr:hover{background:#F6F9FF}
+
+/* ── Buttons ── */
+.btn{border-radius:10px}
+.btn-primary{background:var(--grad);box-shadow:0 2px 10px -2px rgba(79,70,229,.5);border:none}
+.btn-primary:hover{filter:brightness(1.08);box-shadow:0 4px 16px -2px rgba(34,211,238,.5)}
+.btn-success{background:linear-gradient(135deg,#059669,#10B981);box-shadow:0 2px 10px -2px rgba(16,185,129,.45)}
+.btn-success:hover{filter:brightness(1.07)}
+.btn-outline{border-color:#D5DCE8}
+.btn-outline:hover{border-color:var(--blue);color:var(--blue);background:#F5F9FF}
+
+/* ── Inputs ── */
+input,select,textarea{border-color:#DDE3EE;border-radius:10px}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.14)}
+
+/* ── POS ── */
+.product-tile{border-radius:14px;border-color:var(--line);transition:transform .14s,border-color .14s,box-shadow .14s}
+.product-tile:hover{transform:translateY(-3px);border-color:transparent;box-shadow:var(--glow)}
+.product-tile-price{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;font-family:'Space Grotesk',sans-serif;font-weight:700}
+.pos-cart,.cart-sheet{border-radius:16px}
+.cart-header{font-family:'Space Grotesk',sans-serif}
+.mobile-cart-bar{background:linear-gradient(90deg,#059669,#10B981);border-radius:14px 14px 0 0}
+.mcb-total{font-family:'Space Grotesk',sans-serif}
+
+/* ── FAB ── */
+.fab{background:var(--grad);box-shadow:0 6px 24px rgba(59,130,246,.55),0 0 0 1px rgba(34,211,238,.3)}
+.fab:hover{filter:brightness(1.1)}
+
+/* ── Product cards (mobile) ── */
+.product-card .pc-price{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;font-family:'Space Grotesk',sans-serif}
+
+/* ── Modal & toast ── */
+.modal{border-radius:18px;box-shadow:0 24px 70px rgba(10,15,30,.35)}
+.modal-title{font-family:'Space Grotesk',sans-serif;letter-spacing:-.01em}
+#toast{background:rgba(10,15,30,.92);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08);border-radius:12px}
+#toast.success{background:rgba(5,122,85,.94)}
+#toast.error{background:rgba(185,28,28,.94)}
+
+/* ── Hamburger on glass ── */
+.hamburger{color:var(--carbon)}
+
+/* ── Badges: softer, rounded ── */
+.badge{border-radius:8px;font-weight:600}
+
+/* ── Chart bars ── */
+.chart-bar{background:linear-gradient(180deg,#93C5FD,#BFDBFE)}
+.chart-bar:hover{background:var(--grad)}
+
+/* Reduced motion ── */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{transition:none!important;animation:none!important}
+}
+
 </style>
-  <link rel="manifest" href="/manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#2563eb">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
