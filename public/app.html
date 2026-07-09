@@ -474,31 +474,52 @@ async function init() {
   const roleLabels = { owner:'👑 Owner', admin:'🛡️ Admin', staff:'👤 Staff' };
   document.getElementById('userRole').textContent = roleLabels[ROLE] || '👤 Staff';
 
-  // Refresh permissions from server (picks up changes made by admin)
-  try {
-    const meRes = await fetch(API_BASE + '/api/auth', {
+  // 1) Render the shell IMMEDIATELY from cached permissions + settings.
+  //    No waiting on the network — the app appears instantly.
+  const cachedSettings = localStorage.getItem('settings');
+  if (cachedSettings) {
+    try {
+      SETTINGS = JSON.parse(cachedSettings);
+      CURRENCY = SETTINGS.currency_symbol || '₱';
+      document.getElementById('sidebarStoreName').textContent = SETTINGS.store_name || 'Store';
+      document.title = (SETTINGS.store_name || 'Quantomize') + ' — Dashboard';
+      applySidebarLogo(SETTINGS.store_logo);
+    } catch {}
+  }
+  renderNav();
+  const firstPage = MENU.find(m => m.id && hasPerm(m.perm));
+  navigate(firstPage ? firstPage.id : 'sales');
+
+  // 2) Refresh settings + permissions from the server in the BACKGROUND,
+  //    in parallel. Update the UI only if something changed.
+  Promise.all([
+    fetch(API_BASE + '/api/auth', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'me', token: TOKEN })
-    });
-    const me = await meRes.json();
-    if (me.success && me.permissions) {
+    }).then(r => r.json()).catch(() => null),
+    api('settings', 'getSettings').catch(() => null),
+  ]).then(([me, s]) => {
+    // Permissions / role
+    if (me && me.success && me.permissions) {
+      const changed = JSON.stringify(PERMS) !== JSON.stringify(me.permissions)
+                    || (me.user?.role && me.user.role !== ROLE);
       PERMS = me.permissions;
       localStorage.setItem('perms', JSON.stringify(PERMS));
       if (me.user?.role) { ROLE = me.user.role; localStorage.setItem('role', ROLE); }
+      if (changed) renderNav();
+    } else if (me && me.error === 'Unauthorized') {
+      doLogout(); return;
     }
-  } catch {}
-
-  renderNav();
-  const r = await api('settings', 'getSettings');
-  if (r.success) {
-    SETTINGS = r.settings;
-    CURRENCY = SETTINGS.currency_symbol || '₱';
-    document.getElementById('sidebarStoreName').textContent = SETTINGS.store_name || 'Store';
-    document.title = (SETTINGS.store_name || 'Quantomize') + ' — Dashboard';
-    applySidebarLogo(SETTINGS.store_logo);
-  }
-  const firstPage = MENU.find(m => m.id && hasPerm(m.perm));
-  navigate(firstPage ? firstPage.id : 'sales');
+    // Settings
+    if (s && s.success) {
+      SETTINGS = s.settings;
+      localStorage.setItem('settings', JSON.stringify(SETTINGS));
+      CURRENCY = SETTINGS.currency_symbol || '₱';
+      document.getElementById('sidebarStoreName').textContent = SETTINGS.store_name || 'Store';
+      document.title = (SETTINGS.store_name || 'Quantomize') + ' — Dashboard';
+      applySidebarLogo(SETTINGS.store_logo);
+    }
+  });
 }
 
 function fmt(n) { return CURRENCY + Number(n).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -1910,6 +1931,7 @@ async function saveSettings() {
     toast('Settings saved','success');
     CURRENCY=settings.currency_symbol||'₱';
     SETTINGS={...SETTINGS,...settings};
+    localStorage.setItem('settings', JSON.stringify(SETTINGS));
     document.getElementById('sidebarStoreName').textContent = settings.store_name || 'Store';
     if (PENDING_LOGO !== undefined) { applySidebarLogo(PENDING_LOGO); PENDING_LOGO = undefined; }
   }
